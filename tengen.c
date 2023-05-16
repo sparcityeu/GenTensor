@@ -6,36 +6,29 @@
 #include <omp.h>
 
 #define PRINT_DEBUG 1
+#define AVG_SCALE 0.8
 
 /*
  Methods to generate normally distributed random variables are adapted from gennorm.c in
  https://cse.usf.edu/~kchriste/tools/gennorm.c 
  */
 
-// ***** Function prototypes *****
-
-// For ND random number generation
-
-
-double norm_box_muller(double mean, double std_slice);
+double norm_box_muller(double mean, double std_fib_per_slc);
 double rand_val(int seed);
-double calculate_std(long *arr, int arr_size, double mean);
+double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( long *array, int array_size);
 void print_vec_double ( double *array, int array_size);
 void *safe_malloc(int size);
 void *safe_calloc(int count, int size);
 void printusage();
 
-
 int main(int argc, char *argv[])
 {
 	double time_start = omp_get_wtime();
-	
-	// int debug_cnt = 0;
-	
+
 	int input; 
-	double density, density_fiber, cv_slice, cv_fiber;
-	density = density_fiber = cv_slice = cv_fiber = 0.02;
+	double density, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
+	density = density_fiber = cv_fib_per_slc = cv_nz_per_fib = 0.02;
 	double random_seed = 1.0;
 	int outfile_entered=0;
 	
@@ -77,10 +70,10 @@ int main(int argc, char *argv[])
 			case 'f': 	density_fiber = atof(optarg);
 				break;
 			  
-			case 'c': 	cv_slice = atof(optarg);
+			case 'c': 	cv_fib_per_slc = atof(optarg);
 				break;
 				
-			case 'v': 	cv_fiber = atof(optarg);
+			case 'v': 	cv_nz_per_fib = atof(optarg);
 				break;
 				
 			case 'r':  random_seed = atof(optarg);
@@ -89,11 +82,9 @@ int main(int argc, char *argv[])
 			case 'o':	sprintf(outfile, "%s", optarg);
 				outfile_entered = 1;
 				break;
-
 		}
 	}
-	
-	
+		
     if (outfile_entered==0)
     {
 		sprintf(outfile, "%s", "generated_tensor_");
@@ -103,192 +94,183 @@ int main(int argc, char *argv[])
         strcat(strcat(outfile, pid_str), ".tns");
 	}
 		
-	double avg_nz_slice = density;
+	double avg_nz_per_slc = density;
 	for (int i=1; i< order; i++){
-		avg_nz_slice *= dim[i];
+		avg_nz_per_slc *= dim[i];
 	}
 	
-	long nnz = (long) (dim_0 * avg_nz_slice);
-	double std_slice = cv_slice * avg_nz_slice;
+	long nnz = (long) (dim_0 * avg_nz_per_slc);
 	
-	double avg_fib_per_slice = density_fiber * dim_1 ;
-	long tot_fib_cnt = (long) ( avg_fib_per_slice * dim_0 );
+	double avg_fib_per_slc = density_fiber * dim_1 ;
+	double std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
+	
+	long tot_fib_cnt = (long) ( avg_fib_per_slc * dim_0 );
+	
+	double avg_nz_per_fib = (nnz + 0.0) / tot_fib_cnt;
+	double std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+	
 	
     srand((int)random_seed);
-    printf("______________\n");
+	
+	printf("INFO: name \t dim_0 \t dim_1 \t dim_2 \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \n");
+	printf("INFO: %s \t %d \t %d \t %d \t %f \t %f \t %f \t %f\n", outfile, dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
+	// printf("dim_0: %d, dim_1: %d, dim_2: %d, density: %f, density_fiber: %f\n", dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
+    
 	printf("omp_max_threads : \t%d \n", omp_get_max_threads());
-    printf("dim_0: %d, dim_1: %d, dim_2: %d, Density: %f\n", dim_0, dim_1, dim_2, density);
+	// printf("dim_0: %d, dim_1: %d, dim_2: %d, density: %f, density_fiber: %f\n", dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
 	printf("______________\n");
-    printf("Requested features:\n StDev_slice: \t %f\n", std_slice);
-    printf(" coeff_var_slice : \t %.3f \n", cv_slice);
-	printf(" nz_fiber_count: \t %ld\n NNZ: \t %ld \n Avg_nz_per_slice: \t %f \n", tot_fib_cnt, nnz, avg_nz_slice);
-	printf("______________\n");
-	
-	if (std_slice > avg_nz_slice){
-		std_slice = avg_nz_slice;
-		printf ("\n std_slice > avg_nz_slice => Possibly negative values. We set std_slice = avg_nz_slice = %f. \n", std_slice );
-		printf("______________\n");
-	}
+    // printf("Requested features:\n ");
+    // printf(" cv_fib_per_slc : \t %.3f \n", cv_fib_per_slc);
+	// printf(" std_fib_per_slc: \t %.3f\n", std_fib_per_slc);
+	// printf(" avg_fib_per_slc: \t %.1f \n", avg_fib_per_slc);
+	// printf(" nz_fiber_count: \t %ld\n NNZ: \t %ld \n", tot_fib_cnt, nnz);
+	// printf("______________\n");
 
+	printf("FEAT:  std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \n");
+	printf("REQST: %.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+	
     rand_val(random_seed);
-	
-	// if(PRINT_DEBUG){ debug_cnt++; printf("DEBUG OK %d\n", debug_cnt);}
 
-    long *nz_per_slice = safe_malloc(dim_0 * sizeof(long));
 	int *fib_per_slice = safe_malloc(dim_0 * sizeof(int));
-	
-	#pragma omp parallel for
-    for (int i = 0; i < dim_0; i++)
+	int **nz_fib_inds = (int **)safe_malloc(dim_0 * sizeof(int *));
+
+	double time_start1 = omp_get_wtime();
+
+	#pragma omp parallel
     {
-        // Generate a normally distributed rv
-        double norm_rv = round ( norm_box_muller(avg_nz_slice, std_slice) );
-		
-		// printf("%.1f ", norm_rv);
+		int *is_fib_nz = safe_malloc(dim_1 * sizeof(int));	
+		#pragma omp for
+		for (int i = 0; i < dim_0; i++) {
+			// Generate a normally distributed rv
+			int fib_curr_slice =  (int) round (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc ) );
 
-		if ( norm_rv < 1 )
-			norm_rv = 1;
-		
-        nz_per_slice[i] = (long) norm_rv;
-        
-		
-		fib_per_slice[i] = (int) ( ( norm_rv / nnz) * tot_fib_cnt );
-		
-    }
-	
-	double actual_std = calculate_std(nz_per_slice, dim_0, avg_nz_slice);
-	printf("Resulting fetures:\n StDev_slice : \t\t %.3f \n", actual_std);
-	printf(" coeff_var_slice : \t %.3f \n", actual_std / avg_nz_slice);
-
- 	int **nz_fib_inds = (int **)safe_malloc(dim_0 * sizeof(int *));
-	int **nz_per_nz_fiber = (int **)safe_malloc(dim_0 * sizeof(int *));
-		
-	#pragma omp parallel for
-    for (int i = 0; i < dim_0; i++)
-    {
-		int *is_fib_nz = safe_calloc(dim_1, sizeof(int));
-
-		int nz_fib_curr_slice = fib_per_slice[i];
-		
-		for (int j = 0; j < (int) (nz_fib_curr_slice * 1.1); j++) {
-			int random_index = rand() % dim_1;
-			is_fib_nz [random_index] = 1;
-		}
-		
-		// update nz_fib_curr_slice
-		nz_fib_curr_slice = 0;
-		for (int j = 0; j < dim_1; j++) {
-			nz_fib_curr_slice += is_fib_nz [j];
-		}
-		
-		nz_fib_inds[i] = safe_malloc(nz_fib_curr_slice * sizeof(int)); //which fibs are nz
-		fib_per_slice[i] = nz_fib_curr_slice;
-		
-		int curr_ind = 0;
-		for (int j = 0; j < dim_1; j++) {
-			if (is_fib_nz [j]){
-				nz_fib_inds[i][curr_ind] = j;
-				curr_ind++;
+			if ( fib_curr_slice < 1 ){
+				fib_curr_slice = 1;
 			}
-		}
-		
-		double avg_nz_curr_fib = (nz_per_slice[i] + 0.0) / nz_fib_curr_slice;
-		double std_fiber = cv_fiber * avg_nz_curr_fib;
-		
-		// if (std_fiber > avg_nz_curr_fib){
-			// printf ("slice %d,  std_fiber (%f) > avg_nz_curr_fib (%f) \n", i, std_fiber, avg_nz_curr_fib );
-			// std_fiber = avg_nz_curr_fib;
-		// }
-		
-		nz_per_nz_fiber[i] = safe_malloc(nz_fib_curr_slice * sizeof(int));
-		
-		for (int j = 0; j < nz_fib_curr_slice; j++) {
-			double norm_rv = round ( norm_box_muller(avg_nz_curr_fib, std_fiber));
 			
-			if ( norm_rv < 1 )
-				norm_rv = 1;
-		
-			nz_per_nz_fiber[i][j] = norm_rv ;	
+			for (int j = 0; j < dim_1; j++){
+				is_fib_nz [j] = 0;
+			}
+			
+			for (int j = 0; j < fib_curr_slice; j++) {
+				is_fib_nz [rand() % dim_1] = 1;
+			}
+			
+			nz_fib_inds[i] = safe_malloc(fib_curr_slice * sizeof(int)); //which fibs are nz
+			
+			fib_curr_slice = 0;
+			for (int j = 0; j < dim_1; j++) {
+				if (is_fib_nz [j]){
+					nz_fib_inds[i][fib_curr_slice] = j;
+					fib_curr_slice++;
+				}
+			}
+			
+			fib_per_slice[i] = fib_curr_slice;
+			// printf("%d %d \n" ,i, fib_curr_slice);
 		}
-		
 		free ( is_fib_nz );
-		
-		// double actual_std_fib = calculate_std(nz_per_nz_fiber, nz_fib_curr_slice, avg_nz_curr_fib);
-		// printf("Slice %ld fibers -> Resulting std : %.3f, ", i, actual_std_fib);
-		// printf("Resulting cv : %.3f \n", actual_std_fib / avg_nz_curr_fib);
-		
 	}
-
+	
+	
+	
+	double time_fib_per_slc = omp_get_wtime() - time_start1;
+	
 	long *prefix_fib_per_slice = (long *)safe_calloc(dim_0+1 , sizeof(long ));
 	for (long i = 0; i < dim_0; i++) {
 		prefix_fib_per_slice[i+1] = prefix_fib_per_slice[i] + fib_per_slice[i];
 	}
 	
-	long total_nz_fib_cnt = prefix_fib_per_slice[dim_0];
-	printf(" nz_fiber_count: \t %ld\n", total_nz_fib_cnt);
+	tot_fib_cnt = prefix_fib_per_slice[dim_0];
+	avg_fib_per_slc = (tot_fib_cnt + 0.0) / dim_0;
+	std_fib_per_slc = calculate_std(fib_per_slice, dim_0, avg_fib_per_slc);
 	
-	int **nz_indices_in_fib = (int **)safe_malloc(total_nz_fib_cnt * sizeof(int *));
+	// printf("Resulting fetures:\n StDev_fib_per_slice : \t\t %.3f \n", actual_std);
+	// printf(" cv_fib_per_slice : \t %.3f \n", actual_std / avg_fib_per_slc);
+	// printf(" nz_fiber_count: \t %ld\n", tot_fib_cnt);
+
+	int **nz_indices_in_fib = (int **)safe_malloc(tot_fib_cnt * sizeof(int *));
+	int *nz_per_fiber = (int *)safe_malloc(tot_fib_cnt * sizeof(int *));
 	
-	// if(PRINT_DEBUG){ debug_cnt++; printf("DEBUG OK %d\n", debug_cnt);}
+	time_start1 = omp_get_wtime();
 	
-	// printf("size of long %ld int %ld lonlong %ld\n",sizeof(long),sizeof(int),sizeof(long long));
-		
-	#pragma omp parallel for	
-	for (int i = 0; i < dim_0; i++){
-		
+	#pragma omp parallel
+    {
 		int *is_nz_ind = safe_malloc(dim_2 * sizeof(int));
-		
-		int nz_fib_curr_slice = fib_per_slice[i];
-		long prefix_start = prefix_fib_per_slice[i];
-		for (int jth = 0; jth < nz_fib_curr_slice; jth++) {	//for each fiber in curr slice
-			
-			int nz_curr_fib_alloc = (int) (1.01 * nz_per_nz_fiber[i][jth]);
-			long curr_fib_global = prefix_start + jth;
-			nz_indices_in_fib[curr_fib_global] = (int *)safe_calloc( nz_curr_fib_alloc , sizeof(int));
-			
+		#pragma omp for
+		for (int j = 0; j < tot_fib_cnt; j++){
+			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib));
+				
+			if ( nz_curr_fib < 1 ){
+				nz_curr_fib = 1;
+			}
+
 			for (int k = 0; k < dim_2; k++){
 				is_nz_ind [k] = 0;
 			}
 			
 			//randomly fill nonzero values
-			for (int k = 0; k < nz_curr_fib_alloc; k++){
+			for (int k = 0; k < nz_curr_fib; k++){
 				is_nz_ind [rand() % dim_2] = 1;
 			}
 			
-			int local_nz_counter = 0;
+			nz_indices_in_fib[j] = (int *)safe_calloc( nz_curr_fib , sizeof(int));
+			
+			nz_curr_fib = 0;
 			for (int k = 0; k < dim_2; k++) {
 				if (is_nz_ind [k]){
-					nz_indices_in_fib[curr_fib_global][local_nz_counter] = k ;
-					local_nz_counter++;
+					nz_indices_in_fib[j][nz_curr_fib] = k ;
+					nz_curr_fib++;
 				}
 			}
-		
-			//randomly fill nonzero values
-			// double density_curr_fiber = ( expected_nz_curr_fib + 0.0) / dim_2;
-			// for (int k = 0; k < dim_2; k++){
-				// double random_number = (double)rand() / RAND_MAX;
-				// if (density_curr_fiber > random_number){
-					// if (local_nz_counter >= nz_curr_fib_alloc ){
-						// printf("\n Random nz fill gets out of limit !!!!! \n");
-						// printf("k : %d, fib : %d, slice : %d, alloc : %d, counter : %d \n", k, jth, i, nz_curr_fib_alloc, local_nz_counter);
-						// break;
-					// }
-					// else{
-						// nz_indices_in_fib[curr_fib_global][local_nz_counter] = k ;
-						// local_nz_counter++;
-					// }
-				// }
-			// }
-			
-			// printf("nz_per_nz_fiber[i][jth] aim : %d, result : %d, diff : %d \n", nz_per_nz_fiber[i][jth], local_nz_counter, nz_per_nz_fiber[i][jth]- local_nz_counter);
-			nz_per_nz_fiber[i][jth] = local_nz_counter;
+			nz_per_fiber[j] = nz_curr_fib;
 		}
-		free (is_nz_ind);
+		free(is_nz_ind);
+	}
+	
+	double time_nz_per_fib = omp_get_wtime() - time_start1;
+	
+	long *prefix_nz_per_fiber = (long *)safe_calloc(tot_fib_cnt+1 , sizeof(long ));
+	for (int j = 0; j < tot_fib_cnt; j++){
+		prefix_nz_per_fiber[j+1] = prefix_nz_per_fiber[j] + nz_per_fiber[j];
+	}
+	
+	nnz = prefix_nz_per_fiber [tot_fib_cnt];
+	avg_nz_per_fib = (nnz + 0.0) / tot_fib_cnt;
+	std_nz_per_fib = calculate_std(nz_per_fiber, tot_fib_cnt, avg_nz_per_fib);
+	
+	int *ind_0 = safe_malloc(nnz * sizeof(int));
+	int *ind_1 = safe_malloc(nnz * sizeof(int));
+	int *ind_2 = safe_malloc(nnz * sizeof(int));
+	
+	time_start1 = omp_get_wtime();
+	
+	#pragma omp parallel for
+	for (int i = 0; i < dim_0; i++){
+		int fib_curr_slice = fib_per_slice[i];
+		long prefix_fib_start = prefix_fib_per_slice[i];
+		for (int j = 0; j < fib_curr_slice; j++) {	//for each fiber in curr slice
+			long curr_fib_global = prefix_fib_start + j;
+			int local_nz_curr_fib = nz_per_fiber[curr_fib_global];
+			long prefix_nz_start = prefix_nz_per_fiber[curr_fib_global];
+			for (int k = 0; k < local_nz_curr_fib; k++){
+				long curr_nz_global = k + prefix_nz_start;
+				ind_0[curr_nz_global] = i;
+				ind_1[curr_nz_global] = nz_fib_inds[i][j];
+				ind_2[curr_nz_global] = nz_indices_in_fib[curr_fib_global][k];
+			}
+		}
     }
 	
-	// if(PRINT_DEBUG){ debug_cnt++; printf("DEBUG OK %d\n", debug_cnt);}
+	double time_nz_ind = omp_get_wtime() - time_start1;
 	
-
-
+	// printf(" NNZ: \t\t\t %ld\n", nnz);
+	// printf(" Avg_nz_per_slice: \t %f \n", (nnz+0.0) / dim_0);
+	
+	printf("RESLT: %.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+	
+	time_start1 = omp_get_wtime();
+		
 	FILE *fptr;
 	fptr = fopen(outfile, "w");
 	fprintf(fptr, "%d\n", order);
@@ -296,32 +278,25 @@ int main(int argc, char *argv[])
 		fprintf(fptr, "%d ", dim[i]);
 	}
 	fprintf(fptr, "\n");
-	
-	// if(PRINT_DEBUG){ debug_cnt++; printf("DEBUG OK %d\n", debug_cnt);}
-	
-	long global_nz_counter = 0;
-	for (int i = 0; i < dim_0; i++){
-		int nz_fib_curr_slice = fib_per_slice[i];
-		long prefix_start = prefix_fib_per_slice[i];
-		for (int jth = 0; jth < nz_fib_curr_slice; jth++) {	//for each fiber in curr slice
-			long curr_fib_global = prefix_start + jth;
-			int local_nz_curr_fib = nz_per_nz_fiber[i][jth];
-			for (int kth = 0; kth < local_nz_curr_fib; kth++){
-				fprintf(fptr, "%d ", i+1);
-				fprintf(fptr, "%d ", nz_fib_inds[i][jth]+1);
-				fprintf(fptr, "%d ", nz_indices_in_fib[curr_fib_global][kth]+1);
-				fprintf(fptr, "%f\n", (double)rand() / RAND_MAX * 2 - 1);
-				global_nz_counter++;
-			}
-		}
+
+	// #pragma omp parallel for
+	for (int n = 0; n < nnz; n++){
+		fprintf(fptr, "%d ", ind_0[n]+1);
+		fprintf(fptr, "%d ", ind_1[n]+1);
+		fprintf(fptr, "%d ", ind_2[n]+1);
+		fprintf(fptr, "%f\n", (double)rand() / RAND_MAX * 2 - 1);
     }
+	
 	fclose(fptr);
-	
-    printf(" NNZ: \t\t\t %ld\n", global_nz_counter);
-	printf(" Avg_nz_per_slice: \t %f \n", (global_nz_counter+0.0) / dim_0);
-	
+
 	double time_end = omp_get_wtime();
-	printf("total generator time : \t %.7f \n", time_end - time_start);
+
+	printf("______________\n");
+	printf("time_fib_per_slc  : \t %.7f \n", time_fib_per_slc);
+	printf("time_nz_per_fib  : \t %.7f \n", time_nz_per_fib);
+	printf("time_nz_ind  : \t\t %.7f \n", time_nz_ind);
+	printf("time_write  : \t\t %.7f \n", time_end - time_start1);
+	printf("time_total  : \t\t %.7f \n", time_end - time_start);
 
     return 0;
 }
@@ -332,7 +307,7 @@ int main(int argc, char *argv[])
 //=    - Input: mean and standard deviation                                 =
 //=    - Output: Returns with normally distributed random variable          =
 //===========================================================================
-double norm_box_muller(double mean, double std_slice)
+double norm_box_muller(double mean, double std_fib_per_slc)
 {
     double u, r, theta; // Variables for Box-Muller method
     double x;           // Normal(0, 1) rv
@@ -357,7 +332,7 @@ double norm_box_muller(double mean, double std_slice)
     x = r * cos(theta);
 
     // Adjust x value for specified mean and variance
-    norm_rv = (x * std_slice) + mean;
+    norm_rv = (x * std_fib_per_slc) + mean;
 
     // Return the normally distributed RV value
     return (norm_rv);
@@ -403,15 +378,20 @@ double rand_val(int seed)
 
 
 
-double calculate_std(long *arr, int arr_size, double mean)
+double calculate_std(int *arr, int arr_size, double mean)
 {
 
     double sqr_sum = 0;
+	
+	// long sum = 0;
+	// #pragma omp parallel for reduction(+ : sum)
+	// for (int i = 0; i < arr_size; i++) {
+        // sum += arr[i];
+    // }
+	// double mean = (sum+0.0) / arr_size;
 
-#pragma omp parallel for reduction(+ : sqr_sum)
-    for (int i = 0; i < arr_size; i++)
-    {
-        // if(arr[i]==0) continue;	// TT: already all entries nonzero !
+	#pragma omp parallel for reduction(+ : sqr_sum)
+    for (int i = 0; i < arr_size; i++) {
         double mean_diff = arr[i] - mean;
         sqr_sum += mean_diff * mean_diff;
     }
@@ -465,15 +445,14 @@ void *safe_calloc(int count, int size)
 }
 
 
-
 void printusage()
 {
 	printf("usage: tengen dim1 dim2 dim3 [options] \n");
 	
 	printf("\t-d density : nz ratio\n");
 	printf("\t-f fiber_density : nz fiber ratio\n");
-	printf("\t-c cv_slice : coefficient of variation for slices\n");
-	printf("\t-v cv_fiber : coefficient of variation for fibers\n");
+	printf("\t-c cv_fib_per_slc : coefficient of variation for slices\n");
+	printf("\t-v cv_nz_per_fib : coefficient of variation for fibers\n");
 	printf("\t-r random_seed : seed for randomness \n");
 	printf("\t-o outfile : to print out the generated tensor \n");
 

@@ -15,4 +15,5 @@ Usage:
 
 An example run command will be like the following:
 
-./tengen 23776223 22476 22476 -d 0.0000002 -f 0.00516 -c 1.195986 -v 372.1 -o small_darpa.tns
+./tengen 23776223 22476 22476 -d 0.000000237 -f 0.00516 -c 0.05788 -v 0.00475 -o generated_darpa.tns
+./tengen 1000 1000 1000 -d 0.0001 -f 0.01 -c 0.5 -v 0.5 -o generated_1000.tns
