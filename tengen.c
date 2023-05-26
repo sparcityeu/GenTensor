@@ -143,6 +143,8 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < dim_0; i++) {
 			// Generate a normally distributed rv
 			int fib_curr_slice =  (int) round (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc ) );
+			
+			fib_curr_slice *= 1.05; // to adjust nz
 
 			if ( fib_curr_slice < 1 ){
 				fib_curr_slice = 1;
@@ -200,7 +202,9 @@ int main(int argc, char *argv[])
 		#pragma omp for
 		for (int j = 0; j < tot_fib_cnt; j++){
 			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib));
-				
+
+			nz_curr_fib *= 1.05; // to adjust nz
+			
 			if ( nz_curr_fib < 1 ){
 				nz_curr_fib = 1;
 			}
