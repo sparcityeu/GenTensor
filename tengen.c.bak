@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 				is_nz_ind [k] = 0;
 			}
 			
-			unsigned int mystate = random_seed * (j+1) + nz_curr_fib;
+			unsigned int mystate = random_seed * j+1) + nz_curr_fib;
 			
 			//randomly fill nonzero values
 			for (int k = 0; k < nz_curr_fib; k++){
