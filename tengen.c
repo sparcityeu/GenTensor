@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	int input; 
 	double density, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
 	density = density_fiber = cv_fib_per_slc = cv_nz_per_fib = 0.02;
-	int random_seed = 2;
+	int random_seed = 1;
 	int outfile_entered=0;
 	
 	int order=3;
@@ -111,9 +111,7 @@ int main(int argc, char *argv[])
 	double avg_nz_per_fib = (nnz + 0.0) / tot_fib_cnt;
 	double std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
 	
-	
-    // srand(random_seed);
-	
+
 	// rand_val(random_seed);
 	// rand_val_int(random_seed, 10);
 	
@@ -209,7 +207,7 @@ int main(int argc, char *argv[])
 		int *is_nz_ind = safe_malloc(dim_2 * sizeof(int));
 		#pragma omp for
 		for (int j = 0; j < tot_fib_cnt; j++){
-			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+1)));
+			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
 
 			nz_curr_fib *= 1.02; // to adjust nz
 			
@@ -295,12 +293,14 @@ int main(int argc, char *argv[])
 		fprintf(fptr, "%d ", dim[i]);
 	}
 	fprintf(fptr, "\n");
+	
+	srand(random_seed);
 
 	for (int n = 0; n < nnz; n++){
 		fprintf(fptr, "%d ", ind_0[n]+1);
 		fprintf(fptr, "%d ", ind_1[n]+1);
 		fprintf(fptr, "%d ", ind_2[n]+1);
-		fprintf(fptr, "%f\n", (double)rand() / RAND_MAX * 2 - 1);
+		fprintf(fptr, "%g\n", (double)rand() / RAND_MAX );
     }
 	
 	fclose(fptr);
