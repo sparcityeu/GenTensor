@@ -7,6 +7,7 @@
 
 #define PRINT_DEBUG 1
 #define AVG_SCALE 0.8
+#define PRINT_HEADER 0
 
 /*
  Methods to generate normally distributed random variables are adapted from gennorm.c in
@@ -115,13 +116,13 @@ int main(int argc, char *argv[])
 	// rand_val(random_seed);
 	// rand_val_int(random_seed, 10);
 	
-	printf("INFO: name \t seed \t dim_0 \t dim_1 \t dim_2 \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \n");
-	printf("INFO: %s \t %d \t %d \t %d \t %d \t %f \t %f \t %f \t %f\n", outfile, random_seed, dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
+	// printf("INFO: name \t seed \t dim_0 \t dim_1 \t dim_2 \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \n");
+	// printf("INFO: %s \t %d \t %d \t %d \t %d \t %f \t %f \t %f \t %f\n", outfile, random_seed, dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
 	// printf("dim_0: %d, dim_1: %d, dim_2: %d, density: %f, density_fiber: %f\n", dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
     
-	printf("omp_max_threads : \t%d \n", omp_get_max_threads());
+	// printf("omp_max_threads : \t%d \n", omp_get_max_threads());
 	// printf("dim_0: %d, dim_1: %d, dim_2: %d, density: %f, density_fiber: %f\n", dim_0, dim_1, dim_2, density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
-	printf("______________\n");
+	// printf("______________\n");
     // printf("Requested features:\n ");
     // printf(" cv_fib_per_slc : \t %.3f \n", cv_fib_per_slc);
 	// printf(" std_fib_per_slc: \t %.3f\n", std_fib_per_slc);
@@ -129,8 +130,20 @@ int main(int argc, char *argv[])
 	// printf(" nz_fiber_count: \t %ld\n NNZ: \t %ld \n", tot_fib_cnt, nnz);
 	// printf("______________\n");
 
-	printf("FEAT:  std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \n");
-	printf("REQST: %.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+	// printf("FEAT:  std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \n");
+	// printf("REQST: %.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+
+	if (PRINT_HEADER){
+		printf("name \t seed \t dim_0 \t dim_1 \t dim_2 \t ");
+		printf("REQST \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \t ");
+		printf("RESLT \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \t ");
+		printf("threads \t TIME \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
+	}
+	
+	printf("%s \t %d \t %d \t %d \t %d \t ", outfile, random_seed, dim_0, dim_1, dim_2);
+	printf("REQST \t %g \t %g \t %g \t %g \t ", density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
+	printf("%g \t %g \t %ld \t %g \t %g \t %ld \t ", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+
 
 	int *fib_per_slice = safe_malloc(dim_0 * sizeof(int));
 	int **nz_fib_inds = (int **)safe_malloc(dim_0 * sizeof(int *));
@@ -282,7 +295,6 @@ int main(int argc, char *argv[])
 	// printf(" NNZ: \t\t\t %ld\n", nnz);
 	// printf(" Avg_nz_per_slice: \t %f \n", (nnz+0.0) / dim_0);
 	
-	printf("RESLT: %.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
 	
 	time_start1 = omp_get_wtime();
 		
@@ -306,13 +318,24 @@ int main(int argc, char *argv[])
 	fclose(fptr);
 
 	double time_end = omp_get_wtime();
+	
+	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
+	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
+	density = (double) nnz / dim_0 / dim_1 / dim_2 ;
+	density_fiber = (double) tot_fib_cnt / dim_0 / dim_1;
 
-	printf("______________\n");
-	printf("time_fib_per_slc  : \t %.7f \n", time_fib_per_slc);
-	printf("time_nz_per_fib  : \t %.7f \n", time_nz_per_fib);
-	printf("time_nz_ind  : \t\t %.7f \n", time_nz_ind);
-	printf("time_write  : \t\t %.7f \n", time_end - time_start1);
-	printf("time_total  : \t\t %.7f \n", time_end - time_start);
+	printf("RESLT \t %g \t %g \t %g \t %g \t ", density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
+	printf("%.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \n", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+	
+	
+	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
+	
+	// printf("omp_max_threads : \t%d \n", omp_get_max_threads());
+	// printf("time_fib_per_slc  : \t %.7f \n", time_fib_per_slc);
+	// printf("time_nz_per_fib  : \t %.7f \n", time_nz_per_fib);
+	// printf("time_nz_ind  : \t\t %.7f \n", time_nz_ind);
+	// printf("time_write  : \t\t %.7f \n", time_end - time_start1);
+	// printf("time_total  : \t\t %.7f \n", time_end - time_start);
 
     return 0;
 }
