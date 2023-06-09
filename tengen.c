@@ -122,6 +122,13 @@ int main(int argc, char *argv[])
 	printf("REQST \t %g \t %g \t %g \t %g \t ", density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
 	printf("%g \t %g \t %ld \t %g \t %g \t %ld \t ", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
 
+	if (std_fib_per_slc < 1){
+		std_fib_per_slc = 1.0;
+	}
+	
+	if (std_nz_per_fib < 1){
+		std_nz_per_fib = 1.0;
+	}
 
 	int *fib_per_slice = safe_malloc(dim_0 * sizeof(int));
 	int **nz_fib_inds = (int **)safe_malloc(dim_0 * sizeof(int *));
@@ -205,7 +212,7 @@ int main(int argc, char *argv[])
 				is_nz_ind [k] = 0;
 			}
 			
-			unsigned int mystate = random_seed * (j+1) + nz_curr_fib;
+			unsigned int mystate = random_seed * (j+5) + nz_curr_fib;
 			
 			//randomly fill nonzero values
 			for (int k = 0; k < nz_curr_fib; k++){
