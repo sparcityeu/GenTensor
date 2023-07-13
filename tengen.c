@@ -506,10 +506,10 @@ void printusage()
 {
 	printf("usage: tengen dim1 dim2 dim3 [options] \n");
 	
-	printf("\t-d density : nz ratio\n");
-	printf("\t-f fiber_density : nz fiber ratio\n");
-	printf("\t-c cv_fib_per_slc : coefficient of variation for slices\n");
-	printf("\t-v cv_nz_per_fib : coefficient of variation for fibers\n");
+	printf("\t-d density : nonzero ratio\n");
+	printf("\t-f fiber_density : nonzero fiber ratio on mode-(0,1) fibers \n");
+	printf("\t-c cv_fib_per_slc : coefficient of variation for fiber per slice on mode-(0,1) fibers and mode-0 slices\n");
+	printf("\t-v cv_nz_per_fib : coefficient of variation for nonzero per fiber on mode-(0,1) fibers\n");
 	printf("\t-r random_seed : seed for randomness \n");
 	printf("\t-o outfile : to print out the generated tensor \n");
 
