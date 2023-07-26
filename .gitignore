@@ -1,3 +1,9 @@
+tengen
+tengen_naive_rand
+*.txt
+*.tns
+*.bak
+
 # Prerequisites
 *.d
 
