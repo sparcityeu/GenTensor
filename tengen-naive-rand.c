@@ -7,8 +7,6 @@
 
 #define PRINT_DEBUG 1
 #define AVG_SCALE 0.8
-#define PRINT_HEADER 0
-
 
 double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( long *array, int array_size);
@@ -22,13 +20,16 @@ int main(int argc, char *argv[])
 	double time_start = omp_get_wtime();
 
 	int input; 
-	double density;
-	density = 0.02;
+	// double density;
+	// density = 0.02;
 	int random_seed = 1;
 	int outfile_entered=0;
+	long nnz=1;
 	
 	int order=3;
 	int dim [10];
+	
+	int PRINT_HEADER = 0;
 	
 	char outfile[200];
 	
@@ -43,7 +44,7 @@ int main(int argc, char *argv[])
 	dim[1] = dim_1;
 	dim[2] = dim_2;
 	
-	while ((input = getopt(argc, argv, "i:j:k:d:f:c:v:r:o:")) != -1)
+	while ((input = getopt(argc, argv, "i:j:k:n:o:p:")) != -1)
     {
 		switch (input)
 		{	
@@ -59,7 +60,10 @@ int main(int argc, char *argv[])
 				order++;
 				break;
 			
-			case 'd': 	density = atof(optarg);
+			// case 'd': 	density = atof(optarg);
+				// break;
+			
+			case 'n': 	nnz = atol(optarg);
 				break;
 				
 			case 'r':  random_seed = atoi(optarg);
@@ -67,6 +71,9 @@ int main(int argc, char *argv[])
 		
 			case 'o':	sprintf(outfile, "%s", optarg);
 				outfile_entered = 1;
+				break;
+				
+			case 'p':  PRINT_HEADER = atoi(optarg);
 				break;
 		}
 	}
@@ -81,21 +88,29 @@ int main(int argc, char *argv[])
 	}
 		
 	
-	double total =  density * dim[0];
-	for (int i=1; i< order; i++){
-		total *= dim[i];
-	}
+	// double total =  density * dim[0];
+	// for (int i=1; i< order; i++){
+		// total *= dim[i];
+	// }
 	
-	long nnz = (long) total ;
+	// long nnz = (long) total ;
 	
 	if (PRINT_HEADER){
-		printf("name \t seed \t dim_0 \t dim_1 \t dim_2 \t ");
-		printf("REQST \t density \t nnz \t ");
+		printf("name \t seed \t DIM \t ");
+		for (int i = 0; i<order; i++){
+			printf("dim_%d \t ", i);
+		}
+		printf("NNZ \t nnz \t ");
 		printf("TIME \t time_write \t time_total \n");
 	}
 	
-	printf("%s \t %d \t %d \t %d \t %d \t ", outfile, random_seed, dim_0, dim_1, dim_2);
-	printf("REQST \t %g \t %ld \t ", density, nnz);
+	printf("%s \t %d \t DIM \t", outfile, random_seed);
+	
+	for (int i = 0; i<order; i++){
+		printf("%d \t ", dim[i]);
+	}
+	
+	printf("NNZ \t %ld \t ", nnz);
 	
 	srand(random_seed);
 
