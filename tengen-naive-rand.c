@@ -81,12 +81,12 @@ int main(int argc, char *argv[])
 	}
 		
 	
-	long total = 1;
-	for (int i=0; i< order; i++){
+	double total =  density * dim[0];
+	for (int i=1; i< order; i++){
 		total *= dim[i];
 	}
 	
-	long nnz = (long) (total * density);
+	long nnz = (long) total ;
 	
 	if (PRINT_HEADER){
 		printf("name \t seed \t dim_0 \t dim_1 \t dim_2 \t ");
