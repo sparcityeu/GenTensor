@@ -5,7 +5,10 @@ Use the command "./compile.sh" to compile the program.
 
 Usage: 
 
-./tengen dim1 dim2 dim3 [options]                                                                                                                                
+./genten dim1 dim2 dim3 [options]         
+	-i dim4 : 4th dimension (if any)
+	-j dim5 : 5th dimension (if any) 
+	-k dim6 : 6th dimension (if any)                                                                                                                       
 	-d density : nz ratio                                                                                                                                         
 	-f fiber_density : nz fiber ratio                                                                                                                             
 	-c cv_slice : coefficient of variation for slices                                                                                                             
@@ -15,5 +18,5 @@ Usage:
 
 An example run command will be like the following:
 
-./tengen 23776223 22476 22476 -d 0.00000000237 -f 0.0000516 -c 0.05788 -v 0.00475 -o generated_1998darpa.tns
-./tengen 1000 1000 1000 -d 0.0001 -f 0.01 -c 0.5 -v 0.5 -o generated_1000.tns
+./genten 100 100 100 -d 0.01 -f 0.1 -c 0.5 -v 0.5 -o ../../../Desktop/tensor/tns/generated_100_3D.tns
+./genten 100 100 100 -i 100 -d 0.0001 -f 0.1 -c 0.5 -v 0.5 -o ../../../Desktop/tensor/tns/generated_100_4D.tns

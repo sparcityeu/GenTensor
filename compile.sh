@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gcc -O2 -Wall -fopenmp tengen.c -o tengen -lm 
+gcc -O2 -Wall -fopenmp genten.c -o genten -lm 
