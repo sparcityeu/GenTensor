@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <omp.h>
 
+#define ULLI unsigned long long int
+#define USHI unsigned short int 
+#define INTSIZE 268435456
+
 #define PRINT_DEBUG 1
 #define AVG_SCALE 0.8
 #define PRINT_HEADER 0
@@ -17,7 +21,7 @@
 // double norm_box_muller(double mean, double stdev);
 double norm_box_muller(double mean, double stdev, int seed_bm);
 double calculate_std(int *arr, int arr_size, double mean);
-void print_vec ( long *array, int array_size);
+void print_vec ( ULLI *array, int array_size);
 void print_vec_double ( double *array, int array_size);
 void *safe_malloc(int size);
 void *safe_calloc(int count, int size);
@@ -28,8 +32,9 @@ int main(int argc, char *argv[])
 	double time_start = omp_get_wtime();
 
 	int input; 
-	double density, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
+	double density, density_slice, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
 	density = density_fiber = cv_fib_per_slc = cv_nz_per_fib = 0.02;
+	density_slice = 1.0;
 	int random_seed = 1;
 	int outfile_entered=0;
 	
@@ -49,7 +54,7 @@ int main(int argc, char *argv[])
 	dim[1] = dim_1;
 	dim[2] = dim_2;
 	
-	while ((input = getopt(argc, argv, "i:j:k:d:f:c:v:r:o:")) != -1)
+	while ((input = getopt(argc, argv, "i:j:k:d:s:f:c:v:r:o:")) != -1)
     {
 		switch (input)
 		{	
@@ -66,6 +71,9 @@ int main(int argc, char *argv[])
 				break;
 			
 			case 'd': 	density = atof(optarg);
+				break;
+				
+			case 's': 	density_slice = atof(optarg);
 				break;
 			  
 			case 'f': 	density_fiber = atof(optarg);
@@ -94,69 +102,341 @@ int main(int argc, char *argv[])
         snprintf(pid_str, sizeof(pid_str), "%d", pid);
         strcat(strcat(outfile, pid_str), ".tns");
 	}
-		
-	double avg_nz_per_slc = density;
-	for (int i=1; i< order; i++){
-		avg_nz_per_slc *= dim[i];
-	}
 	
-	long nnz = (long) (dim_0 * avg_nz_per_slc);
+	srand(random_seed);
 	
-	double avg_fib_per_slc = density_fiber * dim_1 ;
-	double std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
-	
-	long tot_fib_cnt = (long) ( avg_fib_per_slc * dim_0 );
-	
-	double avg_nz_per_fib = (nnz + 0.0) / tot_fib_cnt;
-	double std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
-	
-
 	if (PRINT_HEADER){
-		printf("name \t seed \t dim_0 \t dim_1 \t dim_2 \t ");
-		printf("REQST \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \t ");
-		printf("RESLT \t density \t density_fiber \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t avg_fib_per_slc \t tot_fib_cnt \t std_nz_per_fib \t avg_nz_per_fib \t nnz \t ");
+		printf("name \t seed \t order \t ");
+		
+		for (int i = 0; i< order; i++){
+			printf("dim_%d \t ", i);
+		}
+		
+		printf("REQST \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t SLC_TYPE \t slc_type \t ");
+		printf("RESLT \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t ");
 		printf("threads \t TIME \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
 	}
 	
-	printf("%s \t %d \t %d \t %d \t %d \t ", outfile, random_seed, dim_0, dim_1, dim_2);
-	printf("REQST \t %g \t %g \t %g \t %g \t ", density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
-	printf("%g \t %g \t %ld \t %g \t %g \t %ld \t ", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
-
-	if (std_fib_per_slc < 1){
-		std_fib_per_slc = 1.0;
+	printf("%s \t %d \t %d \t ", outfile, random_seed, order);
+	
+	for (int i = 0; i< order; i++){
+		printf("%d \t ", dim[i]);
 	}
 	
-	if (std_nz_per_fib < 1){
-		std_nz_per_fib = 1.0;
+	printf("REQST \t %g \t %g \t %g \t %g \t %g \t ", density_slice, density_fiber, density, cv_fib_per_slc, cv_nz_per_fib);
+	
+	if (density_slice > 0.97) {
+		density_slice = 1.0;
+	}
+	
+	int id_first = dim[order-2];
+	int id_second = dim[order-1];
+	
+	ULLI slc_cnt_total = 1;
+	
+	for (int i = 0; i< order-2; i++){
+		slc_cnt_total *= dim[i];
+	}
+	
+	ULLI fib_cnt_total = slc_cnt_total * id_first;
+	
+	ULLI nnz = (ULLI) (density * id_second * fib_cnt_total );
+		
+	ULLI nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
+	ULLI nz_fib_cnt = (ULLI) ( density_fiber * fib_cnt_total );
+	
+	double avg_fib_per_slc = (nz_fib_cnt+0.0) / nz_slc_cnt ;
+	double std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
+
+	double avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
+	double std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+	
+
+	
+	printf("%g \t %g \t %g \t %g \t %llu \t %llu \t %llu \t ", std_fib_per_slc, std_nz_per_fib, avg_fib_per_slc, avg_nz_per_fib, nz_slc_cnt, nz_fib_cnt, nnz);
+
+	// if (std_fib_per_slc < 1){
+		// std_fib_per_slc = 1.0;
+	// }
+	
+	// if (std_nz_per_fib < 1){
+		// std_nz_per_fib = 1.0;
+	// }
+	
+	ULLI nz_slc_cnt_max = nz_slc_cnt;
+	
+	//for memory and number accuracy
+	if (density_slice < 1.0 && density_slice > 0.1) {
+		nz_slc_cnt_max *= 1.1;
+	}
+	
+	
+	int **nz_slc_inds = (int **) safe_malloc(order * sizeof(int*));
+	for (int i = 0; i < order; i++){
+		nz_slc_inds[i] = (int *) safe_malloc(nz_slc_cnt_max * sizeof(int));
 	}
 
-	int *fib_per_slice = safe_malloc(dim_0 * sizeof(int));
-	int **nz_fib_inds = (int **)safe_malloc(dim_0 * sizeof(int *));
+	
+	USHI slc_category = 0;
+	
+	if (density_slice == 1.0) {	// meaning nz_slc_cnt = slc_cnt_total . assign slice indices in sorted order
+		
+		slc_category = 1;
+		
+		if (order == 3){
+			
+			#pragma omp parallel for
+			for (int j = 0; j < nz_slc_cnt; j++) {
+				nz_slc_inds[0][j] = j;
+			}
+		}
+		if (order == 4){	
+			
+			int divider = dim [1];
+			
+			#pragma omp parallel for
+			for (int j = 0; j < nz_slc_cnt; j++) {
+				nz_slc_inds[1][j] = j % divider;
+				nz_slc_inds[0][j] = j / divider;
+			}
+		}
+			
+		if (order == 5){
+				
+			int divider = dim[2];
+			ULLI divider_big = (ULLI) dim[2] * dim[1];
+			
+			#pragma omp parallel for	
+			for (int j = 0; j < nz_slc_cnt; j++) {
+				nz_slc_inds[2][j] = j % divider;
+				nz_slc_inds[1][j] = j / divider;
+				nz_slc_inds[0][j] = j / divider_big;
+			}
+		}
+		
+		else{	// valid for n-dim
+			
+			int divider = dim [order-3];
+			
+			#pragma omp parallel for
+			for (int j = 0; j < nz_slc_cnt; j++) {
+				nz_slc_inds[order-3][j] = j % divider;
+				nz_slc_inds[order-4][j] = j / divider;
+			}
+			
+			ULLI divider_big = (ULLI) divider;
+
+			for (int i = order-5; i >= 0; i--) {	
+				divider_big *= dim [i+1];		
+			
+				#pragma omp parallel for
+				for (int j = 0; j < nz_slc_cnt; j++) {
+					nz_slc_inds[i][j] = j / divider_big;
+				}
+			}
+		}
+	}
+	
+	
+	else if (density_slice > 0.5) {		// assumes is_slc_empty of size slc_cnt_total can fit into memory
+		
+		slc_category = 2; 
+		
+		// determine the slice indices that are empty
+		USHI *is_slc_empty = (USHI *) safe_calloc(slc_cnt_total, sizeof(USHI));	
+
+		// select the empty slices instead of nonzeros because they are less
+		int empty_slc_cnt = (slc_cnt_total - nz_slc_cnt) * 1.03;
+		
+		// unsigned int mystate = random_seed * order + nz_slc_cnt;
+		
+		for (int j = 0; j < empty_slc_cnt; j++) {	
+			is_slc_empty [rand() % slc_cnt_total] = 1;
+		}
+		
+		nz_slc_cnt = 0;
+		
+		if (order == 3){
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
+				if (is_slc_empty [j] == 0){
+					nz_slc_inds[0][nz_slc_cnt] = j;
+					nz_slc_cnt++;
+				}
+			}
+		}
+		
+		else if (order == 4){		
+
+			int divider = dim [1];
+			
+			for (int j = 0; j < slc_cnt_total; j++) {
+				if (is_slc_empty [j] == 0){
+					nz_slc_inds[1][nz_slc_cnt] = j % divider;
+					nz_slc_inds[0][nz_slc_cnt] = j / divider;
+					nz_slc_cnt++;
+				}
+			}
+		}
+		
+		else if (order == 5){		
+			
+			int divider = dim [2];
+			ULLI divider_big = (ULLI) dim [2] * dim [1];
+			
+			for (int j = 0; j < slc_cnt_total; j++) {
+				if (is_slc_empty [j] == 0 ){
+					nz_slc_inds[2][nz_slc_cnt] = j % divider;
+					nz_slc_inds[1][nz_slc_cnt] = j / divider;
+					nz_slc_inds[0][nz_slc_cnt] = j / divider_big;
+					nz_slc_cnt++;
+				}
+			}
+		}
+			
+		else{	// valid for n-dim
+			
+			int divider = dim [order-3];
+			
+			for (int j = 0; j < slc_cnt_total; j++) {
+				if (is_slc_empty [j] == 0 ){
+					nz_slc_inds[order-3][nz_slc_cnt] = j % divider;
+					nz_slc_inds[order-4][nz_slc_cnt] = j / divider;
+					nz_slc_cnt++;
+				}
+			}
+			
+			ULLI divider_big = (ULLI) divider;
+
+			for (int i = order-5; i >= 0; i--) {	
+				divider_big *= dim [i+1];		
+			
+				for (int j = 0; j < slc_cnt_total; j++) {
+					if (is_slc_empty [j] == 0 ){
+						nz_slc_inds [i][nz_slc_cnt] = j / divider_big;
+						nz_slc_cnt++;
+					}
+				}
+			}
+		}
+		free (is_slc_empty);
+	}
+	
+	else if (density_slice > 0.1) { 
+
+		slc_category = 3;
+		
+		nz_slc_cnt = 0;
+		
+		if (order == 3){
+			for (int j = 0; j < slc_cnt_total; j++) {
+				double random_number = (double)rand() / RAND_MAX;
+				if (density_slice >= random_number) {
+					nz_slc_inds[0][nz_slc_cnt] = j;
+					nz_slc_cnt++;
+				}
+			}
+		}
+		
+		if (order == 4){
+			int divider = dim [1];
+			for (int j = 0; j < slc_cnt_total; j++) {
+				double random_number = (double)rand() / RAND_MAX;
+				if (density_slice >= random_number) {
+					nz_slc_inds[1][nz_slc_cnt] = j % divider;
+					nz_slc_inds[0][nz_slc_cnt] = j / divider;
+					nz_slc_cnt++;
+				}
+			}
+		}
+		
+		else if (order == 5){		
+			
+			int divider = dim [2];
+			ULLI divider_big = (ULLI) dim [2] * dim [1];
+			
+			for (int j = 0; j < slc_cnt_total; j++) {
+				double random_number = (double)rand() / RAND_MAX;
+				if (density_slice >= random_number) {
+					nz_slc_inds[2][nz_slc_cnt] = j % divider;
+					nz_slc_inds[1][nz_slc_cnt] = j / divider;
+					nz_slc_inds[0][nz_slc_cnt] = j / divider_big;
+					nz_slc_cnt++;
+				}
+			}
+		}
+		
+		else{	// valid for n-dim
+			
+			int divider = dim [order-3];
+			
+			for (int j = 0; j < slc_cnt_total; j++) {
+				double random_number = (double)rand() / RAND_MAX;
+				if (density_slice >= random_number) {
+					nz_slc_inds[order-3][nz_slc_cnt] = j % divider;
+					nz_slc_inds[order-4][nz_slc_cnt] = j / divider;
+					
+					ULLI divider_big = (ULLI) divider;
+					
+					for (int i = order-5; i >= 0; i--) {	
+						divider_big *= dim [i+1];		
+						nz_slc_inds[i][nz_slc_cnt] = j / divider_big;	
+					}
+					nz_slc_cnt++;
+				}
+			}
+		}
+	}
+	
+	else{ // means density_slice < 0.1
+	
+		slc_category = 4;
+		
+		int curr_dim;
+		
+		//#pragma omp parallel for
+		for (int i = 0; i < order-2; i++) {
+			curr_dim = dim[i];
+			for (int j = 0; j < nz_slc_cnt; j++) {
+				nz_slc_inds[i][j] = rand() % curr_dim;
+			}
+		}
+		
+	}
+	
+	printf("SLC_TYPE \t %d \t ", slc_category);
+	
+	
+	//update with changed nz_slc_cnt
+	avg_fib_per_slc = nz_fib_cnt / nz_slc_cnt ;
+	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
+
+	int *fib_per_slice = safe_malloc(nz_slc_cnt * sizeof(int));
+	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
 
 	double time_start1 = omp_get_wtime();
 
 	#pragma omp parallel
     {
-		int *is_fib_nz = safe_malloc(dim_1 * sizeof(int));	
+		USHI *is_fib_nz = (USHI *) safe_malloc(id_first * sizeof(USHI));	
 		#pragma omp for
-		for (int i = 0; i < dim_0; i++) {
+		for (ULLI i = 0; i < nz_slc_cnt; i++) {
 			// Generate a normally distributed rv
 			int fib_curr_slice =  (int) round (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
 			
-			fib_curr_slice *= 1.02; // to adjust nz
+			fib_curr_slice *= 1.01; // to adjust nz
 
 			if ( fib_curr_slice < 1 ){
 				fib_curr_slice = 1;
 			}
 			
-			for (int j = 0; j < dim_1; j++){
+			for (int j = 0; j < id_first; j++){
 				is_fib_nz [j] = 0;
 			}
 			
 			unsigned int mystate = random_seed * (i+1) + fib_curr_slice;
 			
 			for (int j = 0; j < fib_curr_slice; j++) {
-				is_fib_nz [rand_r(&mystate) % dim_1] = 1;
+				is_fib_nz [rand_r(&mystate) % id_first] = 1;
 				// is_fib_nz [rand() % dim_1] = 1;
 				// is_fib_nz [ (int) floor (rand_val(0) * dim_1) ] = 1;
 				// is_fib_nz [ rand_val_int(0, dim_1) ] = 1;
@@ -165,7 +445,7 @@ int main(int argc, char *argv[])
 			nz_fib_inds[i] = safe_malloc(fib_curr_slice * sizeof(int)); //which fibs are nz
 			
 			fib_curr_slice = 0;
-			for (int j = 0; j < dim_1; j++) {
+			for (int j = 0; j < id_first; j++) {
 				if (is_fib_nz [j]){
 					nz_fib_inds[i][fib_curr_slice] = j;
 					fib_curr_slice++;
@@ -178,37 +458,40 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	
 	double time_fib_per_slc = omp_get_wtime() - time_start1;
 	
-	long *prefix_fib_per_slice = (long *)safe_calloc(dim_0+1 , sizeof(long ));
-	for (long i = 0; i < dim_0; i++) {
+	ULLI *prefix_fib_per_slice = (ULLI *)safe_calloc(nz_slc_cnt+1 , sizeof(ULLI ));
+	for (int i = 0; i < nz_slc_cnt; i++) {
 		prefix_fib_per_slice[i+1] = prefix_fib_per_slice[i] + fib_per_slice[i];
 	}
 	
-	tot_fib_cnt = prefix_fib_per_slice[dim_0];
-	avg_fib_per_slc = (tot_fib_cnt + 0.0) / dim_0;
-	std_fib_per_slc = calculate_std(fib_per_slice, dim_0, avg_fib_per_slc);
+	nz_fib_cnt = prefix_fib_per_slice[nz_slc_cnt];
+	avg_fib_per_slc = (nz_fib_cnt + 0.0) / nz_slc_cnt;
+	std_fib_per_slc = calculate_std(fib_per_slice, nz_slc_cnt, avg_fib_per_slc);
+	
+	//update with changed nz_fib_cnt
+	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
+	std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
 
-	int **nz_indices_in_fib = (int **)safe_malloc(tot_fib_cnt * sizeof(int *));
-	int *nz_per_fiber = (int *)safe_malloc(tot_fib_cnt * sizeof(int *));
+	int **nz_indices_in_fib = (int **)safe_malloc(nz_fib_cnt * sizeof(int *));
+	int *nz_per_fiber = (int *)safe_malloc(nz_fib_cnt * sizeof(int *));
 	
 	time_start1 = omp_get_wtime();
 	
 	#pragma omp parallel
     {
-		int *is_nz_ind = safe_malloc(dim_2 * sizeof(int));
+		USHI *is_nz_ind = (USHI*) safe_malloc(id_second * sizeof(USHI));
 		#pragma omp for
-		for (int j = 0; j < tot_fib_cnt; j++){
+		for (int j = 0; j < nz_fib_cnt; j++){
 			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
 
-			nz_curr_fib *= 1.02; // to adjust nz
+			nz_curr_fib *= 1.01; // to adjust nz
 			
 			if ( nz_curr_fib < 1 ){
 				nz_curr_fib = 1;
 			}
 
-			for (int k = 0; k < dim_2; k++){
+			for (int k = 0; k < id_second; k++){
 				is_nz_ind [k] = 0;
 			}
 			
@@ -216,7 +499,7 @@ int main(int argc, char *argv[])
 			
 			//randomly fill nonzero values
 			for (int k = 0; k < nz_curr_fib; k++){
-				is_nz_ind [rand_r(&mystate) % dim_2] = 1;
+				is_nz_ind [rand_r(&mystate) % id_second] = 1;
 				// is_nz_ind [rand() % dim_2] = 1;
 				// is_nz_ind [ (int) floor (rand_val(0) * dim_2) ] = 1;
 				// is_nz_ind [ rand_val_int(0, dim_2) ] = 1;
@@ -225,7 +508,7 @@ int main(int argc, char *argv[])
 			nz_indices_in_fib[j] = (int *)safe_calloc( nz_curr_fib , sizeof(int));
 			
 			nz_curr_fib = 0;
-			for (int k = 0; k < dim_2; k++) {
+			for (int k = 0; k < id_second; k++) {
 				if (is_nz_ind [k]){
 					nz_indices_in_fib[j][nz_curr_fib] = k ;
 					nz_curr_fib++;
@@ -238,40 +521,46 @@ int main(int argc, char *argv[])
 	
 	double time_nz_per_fib = omp_get_wtime() - time_start1;
 	
-	long *prefix_nz_per_fiber = (long *)safe_calloc(tot_fib_cnt+1 , sizeof(long ));
-	for (int j = 0; j < tot_fib_cnt; j++){
+	ULLI *prefix_nz_per_fiber = (ULLI *)safe_calloc(nz_fib_cnt+1 , sizeof(ULLI ));
+	for (int j = 0; j < nz_fib_cnt; j++){
 		prefix_nz_per_fiber[j+1] = prefix_nz_per_fiber[j] + nz_per_fiber[j];
 	}
 	
-	nnz = prefix_nz_per_fiber [tot_fib_cnt];
-	avg_nz_per_fib = (nnz + 0.0) / tot_fib_cnt;
-	std_nz_per_fib = calculate_std(nz_per_fiber, tot_fib_cnt, avg_nz_per_fib);
+	nnz = prefix_nz_per_fiber [nz_fib_cnt];
+	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
+	std_nz_per_fib = calculate_std(nz_per_fiber, nz_fib_cnt, avg_nz_per_fib);
 	
-	int *ind_0 = safe_malloc(nnz * sizeof(int));
-	int *ind_1 = safe_malloc(nnz * sizeof(int));
-	int *ind_2 = safe_malloc(nnz * sizeof(int));
 	
 	time_start1 = omp_get_wtime();
 	
+	
+	int **ind = (int **) safe_malloc(order * sizeof(int*));
+	for (int i = 0; i < order; i++){
+		ind[i] = (int *) safe_malloc(nnz * sizeof(int));
+	}
+	
 	#pragma omp parallel for
-	for (int i = 0; i < dim_0; i++){
+	for (int i = 0; i < nz_slc_cnt; i++){	//for each nonzero slice
 		int fib_curr_slice = fib_per_slice[i];
-		long prefix_fib_start = prefix_fib_per_slice[i];
+		ULLI prefix_fib_start = prefix_fib_per_slice[i];
 		for (int j = 0; j < fib_curr_slice; j++) {	//for each fiber in curr slice
-			long curr_fib_global = prefix_fib_start + j;
+			ULLI curr_fib_global = prefix_fib_start + j;
 			int local_nz_curr_fib = nz_per_fiber[curr_fib_global];
-			long prefix_nz_start = prefix_nz_per_fiber[curr_fib_global];
-			for (int k = 0; k < local_nz_curr_fib; k++){
-				long curr_nz_global = k + prefix_nz_start;
-				ind_0[curr_nz_global] = i;
-				ind_1[curr_nz_global] = nz_fib_inds[i][j];
-				ind_2[curr_nz_global] = nz_indices_in_fib[curr_fib_global][k];
+			ULLI prefix_nz_start = prefix_nz_per_fiber[curr_fib_global];
+			for (int k = 0; k < local_nz_curr_fib; k++){	//for each nz in curr fiber
+				ULLI curr_nz_global = k + prefix_nz_start;
+				ind[order-2][curr_nz_global] = nz_fib_inds[i][j];
+				ind[order-1][curr_nz_global] = nz_indices_in_fib[curr_fib_global][k];
+				for (int m = 0; m <order-2; m++){
+					ind[m][curr_nz_global] = nz_slc_inds[m][i];	// assign the indices of the current nz slice
+				}
 			}
 		}
     }
 	
 	double time_nz_ind = omp_get_wtime() - time_start1;
 	
+	// if (PRINT_DEBUG) printf(" \n DEBUG \n ");
 	
 	
 	time_start1 = omp_get_wtime();
@@ -289,10 +578,12 @@ int main(int argc, char *argv[])
 	}
 	fprintf(fptr, "\n");
 	
-	srand(random_seed);
 
 	for (int n = 0; n < nnz; n++){
-		fprintf(fptr, "%d %d %d ", ind_0[n]+1, ind_1[n]+1, ind_2[n]+1);
+		// fprintf(fptr, "%d %d %d ", ind_0[n]+1, ind_1[n]+1, ind_2[n]+1);
+		for (int i = 0; i < order; i++){
+			fprintf(fptr, "%d ", ind[i][n]+1);
+		}
 		fprintf(fptr, "%g\n", (double)rand() / RAND_MAX );
     }
 	
@@ -302,11 +593,14 @@ int main(int argc, char *argv[])
 	
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
 	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
-	density = (double) nnz / dim_0 / dim_1 / dim_2 ;
-	density_fiber = (double) tot_fib_cnt / dim_0 / dim_1;
+	density =  ( (nnz + 0.0) / fib_cnt_total ) / id_second ;
+	density_fiber = (double) nz_fib_cnt / fib_cnt_total;
+	density_slice = (double) nz_slc_cnt / slc_cnt_total;
 
-	printf("RESLT \t %g \t %g \t %g \t %g \t ", density, density_fiber, cv_fib_per_slc, cv_nz_per_fib);
-	printf("%.3f \t %.1f \t %ld \t %.3f \t %.1f \t %ld \t", std_fib_per_slc, avg_fib_per_slc, tot_fib_cnt, std_nz_per_fib, avg_nz_per_fib, nnz);
+
+	printf("RESLT \t %g \t %g \t %g \t %g \t %g \t ", density_slice, density_fiber, density, cv_fib_per_slc, cv_nz_per_fib);
+	printf("%g \t %g \t %g \t %g \t %llu \t %llu \t %llu \t ", std_fib_per_slc, std_nz_per_fib, avg_fib_per_slc, avg_nz_per_fib, nz_slc_cnt, nz_fib_cnt, nnz);
+
 	
 	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
 	
@@ -370,14 +664,14 @@ double norm_box_muller(double mean, double stdev, int seed_bm)
 /*
 double rand_val(int seed)
 {
-    const long a = 16807;      // Multiplier
-    const long m = 2147483647; // Modulus
-    const long q = 127773;     // m div a
-    const long r = 2836;       // m mod a
-    static long x;             // Random int value
-    long x_div_q;              // x divided by q
-    long x_mod_q;              // x modulo q
-    long x_new;                // New x value
+    const ULLI a = 16807;      // Multiplier
+    const ULLI m = 2147483647; // Modulus
+    const ULLI q = 127773;     // m div a
+    const ULLI r = 2836;       // m mod a
+    static ULLI x;             // Random int value
+    ULLI x_div_q;              // x divided by q
+    ULLI x_mod_q;              // x modulo q
+    ULLI x_new;                // New x value
 
     // Set the seed if argument is non-zero and then return zero
     if (seed > 0)
@@ -410,13 +704,13 @@ double rand_val(int seed)
 /*
 int rand_val_int(int seed, int limit)
 {
-    const long a = 16807;      // Multiplier
-    const long m = 2147483647; // Modulus
-    const long q = 127773;     // m div a
-    const long r = 2836;       // m mod a
-    static long x_int;             // Random int value
-    long x_div_q;              // x_int divided by q
-    long x_mod_q;              // x_int modulo q
+    const ULLI a = 16807;      // Multiplier
+    const ULLI m = 2147483647; // Modulus
+    const ULLI q = 127773;     // m div a
+    const ULLI r = 2836;       // m mod a
+    static ULLI x_int;             // Random int value
+    ULLI x_div_q;              // x_int divided by q
+    ULLI x_mod_q;              // x_int modulo q
 
     // Set the seed if argument is non-zero and then return zero
     if (seed > 0){
@@ -440,7 +734,7 @@ double calculate_std(int *arr, int arr_size, double mean)
 
     double sqr_sum = 0;
 	
-	// long sum = 0;
+	// ULLI sum = 0;
 	// #pragma omp parallel for reduction(+ : sum)
 	// for (int i = 0; i < arr_size; i++) {
         // sum += arr[i];
@@ -457,11 +751,11 @@ double calculate_std(int *arr, int arr_size, double mean)
 }
 
 
-void print_vec ( long *array, int array_size)
+void print_vec ( ULLI *array, int array_size)
 {
 	printf ("array (size:%d) : [ ", array_size);
 	for (int i = 0; i<array_size; i++){
-		printf ("%ld ", array[i]);
+		printf ("%llu ", array[i]);
 	}
 	printf ("] \n");
 	
@@ -482,7 +776,7 @@ void *safe_malloc(int size)
     void *loc = malloc(size);
     if (loc == NULL)
     {
-        printf("Memory allocation failed.\n");
+        printf(" genten.c : safe_malloc : Memory (%d = %d GB) could not be allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
@@ -494,7 +788,7 @@ void *safe_calloc(int count, int size)
     void *loc = calloc(count, size);
     if (loc == NULL)
     {
-        printf("Memory (c)allocation failed.\n");
+        printf(" genten.c : safe_calloc : Memory (%d = %d GB) could not be (c)allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
@@ -510,7 +804,8 @@ void printusage()
 	printf("\t-j dim5 : 5th dimension (if any)\n");
 	printf("\t-k dim6 : 6th dimension (if any)\n");
 	printf("\t-d density : nonzero ratio\n");
-	printf("\t-f fiber_density : nonzero fiber ratio on mode-(0,1) fibers \n");
+	printf("\t-f density_fiber : nonzero fiber ratio on mode-(M) fibers \n");
+	printf("\t-s density_slice : nonzero slice ratio on mode-(M-1,M) slices \n");
 	printf("\t-c cv_fib_per_slc : coefficient of variation for fiber per slice on mode-(0,1) fibers and mode-0 slices\n");
 	printf("\t-v cv_nz_per_fib : coefficient of variation for nonzero per fiber on mode-(0,1) fibers\n");
 	printf("\t-r random_seed : seed for randomness \n");

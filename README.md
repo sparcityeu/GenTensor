@@ -20,3 +20,4 @@ An example run command will be like the following:
 
 ./genten 100 100 100 -d 0.01 -f 0.1 -c 0.5 -v 0.5 -o ../../../Desktop/tensor/tns/generated_100_3D.tns
 ./genten 100 100 100 -i 100 -d 0.0001 -f 0.1 -c 0.5 -v 0.5 -o ../../../Desktop/tensor/tns/generated_100_4D.tns
+./genten 10 20 30 -i 40 -j 50 -d 0.0001 -f 0.001 -s 0.01 -c 0.5 -v 0.5 -o ../../../Desktop/tensor/tns/generated_5d.tns

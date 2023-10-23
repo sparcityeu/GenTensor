@@ -146,9 +146,9 @@ int main(int argc, char *argv[])
 	
 	for (int i = 0; i < nnz; i++)
     {
-        for (int j = 0; j < order; j++)
+        for (int j = 0; j < order; j++){
             fprintf(fptr, "%d ", rand() % dim[j] +1);
-
+		}
         fprintf(fptr, "%lf\n", (double)rand() / RAND_MAX);
     }
 	
