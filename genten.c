@@ -33,42 +33,34 @@ int main(int argc, char *argv[])
 
 	int input; 
 	double density, density_slice, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
-	density = density_fiber = cv_fib_per_slc = cv_nz_per_fib = 0.02;
+	
+	density = 0.001;
+	density_fiber 0.01;
 	density_slice = 1.0;
+	
+	cv_fib_per_slc = cv_nz_per_fib = 0.5;
+	
 	int random_seed = 1;
 	int outfile_entered=0;
-	
-	int order=3;
-	int dim [10];
-	
+
 	char outfile[200];
 	
 	if (argc <= optind)
 		printusage();
 	
-	int  dim_0 = atoi(argv[1]);
-	int  dim_1 = atoi(argv[2]);
-	int  dim_2 = atoi(argv[3]);
+	int order = atoi(argv[1]);
 	
-	dim[0] = dim_0;
-	dim[1] = dim_1;
-	dim[2] = dim_2;
+	int *dim = (int *) safe_malloc(order * sizeof(int));
 	
-	while ((input = getopt(argc, argv, "i:j:k:d:s:f:c:v:r:o:")) != -1)
+	for (int i = 0; i<order; i++){
+		dim[i]= atoi(argv[i+2]);
+	}
+	
+	
+	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:")) != -1)
     {
 		switch (input)
 		{	
-			case 'i':  dim[3] = atoi(optarg);
-				order++;
-				break;
-				
-			case 'j':  dim[4] = atoi(optarg);
-				order++;
-				break;
-			
-			case 'k':  dim[5] = atoi(optarg);
-				order++;
-				break;
 			
 			case 'd': 	density = atof(optarg);
 				break;
@@ -798,16 +790,13 @@ void *safe_calloc(int count, int size)
 
 void printusage()
 {
-	printf("usage: genten dim1 dim2 dim3 [options] \n");
+	printf("usage: ./genten order sizes[] [options] \n");
 	
-	printf("\t-i dim4 : 4th dimension (if any)\n");
-	printf("\t-j dim5 : 5th dimension (if any)\n");
-	printf("\t-k dim6 : 6th dimension (if any)\n");
 	printf("\t-d density : nonzero ratio\n");
-	printf("\t-f density_fiber : nonzero fiber ratio on mode-(M) fibers \n");
-	printf("\t-s density_slice : nonzero slice ratio on mode-(M-1,M) slices \n");
-	printf("\t-c cv_fib_per_slc : coefficient of variation for fiber per slice on mode-(0,1) fibers and mode-0 slices\n");
-	printf("\t-v cv_nz_per_fib : coefficient of variation for nonzero per fiber on mode-(0,1) fibers\n");
+	printf("\t-f density_fiber : nonzero fiber ratio for mode-(M) fibers \n");
+	printf("\t-s density_slice : nonzero slice ratio for mode-(M-1,M) slices \n");
+	printf("\t-c cv_fib_per_slc : coefficient of variation of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices\n");
+	printf("\t-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers\n");
 	printf("\t-r random_seed : seed for randomness \n");
 	printf("\t-o outfile : to print out the generated tensor \n");
 
