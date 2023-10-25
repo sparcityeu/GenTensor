@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		
 		printf("REQST \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t SLC_TYPE \t slc_type \t ");
 		printf("RESLT \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t ");
-		printf("threads \t TIME \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
+		printf("threads \t TIME \t time_slc \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
 	}
 	
 	printf("%s \t %d \t %d \t ", outfile, random_seed, order);
@@ -167,7 +167,9 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < order; i++){
 		nz_slc_inds[i] = (int *) safe_malloc(nz_slc_cnt_max * sizeof(int));
 	}
-
+	
+	//time for slice count
+	double time_start1 = omp_get_wtime();
 	
 	USHI slc_category = 0;
 	
@@ -395,6 +397,8 @@ int main(int argc, char *argv[])
 		
 	}
 	
+	double time_nz_slc = omp_get_wtime() - time_start1;
+	
 	printf("SLC_TYPE \t %d \t ", slc_category);
 	
 	
@@ -405,7 +409,7 @@ int main(int argc, char *argv[])
 	int *fib_per_slice = safe_malloc(nz_slc_cnt * sizeof(int));
 	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
 
-	double time_start1 = omp_get_wtime();
+	time_start1 = omp_get_wtime();
 
 	#pragma omp parallel
     {
@@ -594,7 +598,7 @@ int main(int argc, char *argv[])
 	printf("%g \t %g \t %g \t %g \t %llu \t %llu \t %llu \t ", std_fib_per_slc, std_nz_per_fib, avg_fib_per_slc, avg_nz_per_fib, nz_slc_cnt, nz_fib_cnt, nnz);
 
 	
-	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
+	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_nz_slc, time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
 	
 
     return 0;
