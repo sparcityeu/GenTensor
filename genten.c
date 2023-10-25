@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	double density, density_slice, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
 	
 	density = 0.001;
-	density_fiber 0.01;
+	density_fiber = 0.01;
 	density_slice = 1.0;
 	
 	cv_fib_per_slc = cv_nz_per_fib = 0.5;
