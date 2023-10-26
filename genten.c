@@ -9,9 +9,6 @@
 #define USHI unsigned short int 
 #define INTSIZE 268435456
 
-#define PRINT_DEBUG 1
-#define AVG_SCALE 0.8
-#define PRINT_HEADER 0
 
 /*
  Methods to generate normally distributed random variables are adapted from gennorm.c in
@@ -42,6 +39,8 @@ int main(int argc, char *argv[])
 	
 	int random_seed = 1;
 	int outfile_entered=0;
+	int print_header = 0;
+	int print_debug = 0;
 
 	char outfile[200];
 	
@@ -57,7 +56,7 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:")) != -1)
+	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:h:p:")) != -1)
     {
 		switch (input)
 		{	
@@ -83,6 +82,13 @@ int main(int argc, char *argv[])
 			case 'o':	sprintf(outfile, "%s", optarg);
 				outfile_entered = 1;
 				break;
+			
+			case 'h':  print_header = atoi(optarg);
+				break;
+			
+			case 'p':  print_debug = atoi(optarg);
+				break;
+				
 		}
 	}
 		
@@ -97,7 +103,7 @@ int main(int argc, char *argv[])
 	
 	srand(random_seed);
 	
-	if (PRINT_HEADER){
+	if (print_header){
 		printf("name \t seed \t order \t ");
 		
 		for (int i = 0; i< order; i++){
@@ -167,6 +173,9 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < order; i++){
 		nz_slc_inds[i] = (int *) safe_malloc(nz_slc_cnt_max * sizeof(int));
 	}
+	
+	if (print_debug) printf(" \n *** Starting to determine the nonzero slice indices ... \n ");
+	
 	
 	//time for slice count
 	double time_start1 = omp_get_wtime();
@@ -401,6 +410,8 @@ int main(int argc, char *argv[])
 	
 	printf("SLC_TYPE \t %d \t ", slc_category);
 	
+	if (print_debug) printf(" \n *** Determining the nonzero slice indices is done. \n ");
+	
 	
 	//update with changed nz_slc_cnt
 	avg_fib_per_slc = nz_fib_cnt / nz_slc_cnt ;
@@ -455,6 +466,8 @@ int main(int argc, char *argv[])
 	
 	
 	double time_fib_per_slc = omp_get_wtime() - time_start1;
+	
+	if (print_debug) printf(" \n *** Determining fib indices in slices is done. \n ");
 	
 	ULLI *prefix_fib_per_slice = (ULLI *)safe_calloc(nz_slc_cnt+1 , sizeof(ULLI ));
 	for (int i = 0; i < nz_slc_cnt; i++) {
@@ -517,6 +530,8 @@ int main(int argc, char *argv[])
 	
 	double time_nz_per_fib = omp_get_wtime() - time_start1;
 	
+	if (print_debug) printf(" \n *** Determining nz indices in fibers is done. \n ");
+	
 	ULLI *prefix_nz_per_fiber = (ULLI *)safe_calloc(nz_fib_cnt+1 , sizeof(ULLI ));
 	for (int j = 0; j < nz_fib_cnt; j++){
 		prefix_nz_per_fiber[j+1] = prefix_nz_per_fiber[j] + nz_per_fiber[j];
@@ -556,7 +571,7 @@ int main(int argc, char *argv[])
 	
 	double time_nz_ind = omp_get_wtime() - time_start1;
 	
-	// if (PRINT_DEBUG) printf(" \n DEBUG \n ");
+	if (print_debug) printf(" \n *** ind array is constructed. \n ");
 	
 	
 	time_start1 = omp_get_wtime();
@@ -586,6 +601,8 @@ int main(int argc, char *argv[])
 	fclose(fptr);
 
 	double time_end = omp_get_wtime();
+	
+	if (print_debug) printf(" \n *** Writing the generated tensor into output file is done. \n ");
 	
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
 	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
@@ -803,6 +820,8 @@ void printusage()
 	printf("\t-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers\n");
 	printf("\t-r random_seed : seed for randomness \n");
 	printf("\t-o outfile : to print out the generated tensor \n");
+	printf("\t-h print_header : to print the header names for the output values \n");
+	printf("\t-p print_debug : to print at some main steps for debugging \n");
 
 	exit(1);
 }

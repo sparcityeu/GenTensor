@@ -13,6 +13,8 @@ Usage:
 	-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers                                                                                                            
 	-r random_seed : seed for randomness                                                                                                                          
 	-o outfile : to print out the generated tensor
+	-h print_header : to print the header names for the output values 
+	-p print_debug : to print at some main steps for debugging 
 
 An example run command will be like the following:
 
