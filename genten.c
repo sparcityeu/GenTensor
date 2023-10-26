@@ -169,8 +169,8 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	int **nz_slc_inds = (int **) safe_malloc(order * sizeof(int*));
-	for (int i = 0; i < order; i++){
+	int **nz_slc_inds = (int **) safe_malloc((order-2) * sizeof(int*));
+	for (int i = 0; i < order-2; i++){
 		nz_slc_inds[i] = (int *) safe_malloc(nz_slc_cnt_max * sizeof(int));
 	}
 	
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 				nz_slc_inds[0][j] = j;
 			}
 		}
-		if (order == 4){	
+		else if (order == 4){	
 			
 			int divider = dim [1];
 			
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 			}
 		}
 			
-		if (order == 5){
+		else if (order == 5){
 				
 			int divider = dim[2];
 			ULLI divider_big = (ULLI) dim[2] * dim[1];
@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		
-		if (order == 4){
+		else if (order == 4){
 			int divider = dim [1];
 			for (int j = 0; j < slc_cnt_total; j++) {
 				double random_number = (double)rand() / RAND_MAX;
@@ -666,80 +666,6 @@ double norm_box_muller(double mean, double stdev, int seed_bm)
     // Return the normally distributed RV value
     return (norm_rv);
 }
-
-//=========================================================================
-//= Multiplicative LCG for generating uniform(0.0, 1.0) random numbers    =
-//=   - x_n = 7^5*x_(n-1)mod(2^31 - 1)                                    =
-//=   - With x seeded to 1 the 10000th x value should be 1043618065       =
-//=   - From R. Jain, "The Art of Computer Systems Performance Analysis," =
-//=     John Wiley & Sons, 1991. (Page 443, Figure 26.2)                  =
-//=========================================================================
-/*
-double rand_val(int seed)
-{
-    const ULLI a = 16807;      // Multiplier
-    const ULLI m = 2147483647; // Modulus
-    const ULLI q = 127773;     // m div a
-    const ULLI r = 2836;       // m mod a
-    static ULLI x;             // Random int value
-    ULLI x_div_q;              // x divided by q
-    ULLI x_mod_q;              // x modulo q
-    ULLI x_new;                // New x value
-
-    // Set the seed if argument is non-zero and then return zero
-    if (seed > 0)
-    {
-        x = seed;
-        return (0.0);
-    }
-
-    // RNG using integer arithmetic
-    x_div_q = x / q;
-    x_mod_q = x % q;
-    x_new = (a * x_mod_q) - (r * x_div_q);
-    if (x_new > 0)
-        x = x_new;
-    else
-        x = x_new + m;
-
-    // Return a random value between 0.0 and 1.0
-    return ((double)x / m);
-}
-*/
-
-//=========================================================================
-//= Multiplicative LCG for generating uniform(0.0, 1.0) random numbers    =
-//=   - x_n = 7^5*x_(n-1)mod(2^31 - 1)                                    =
-//=   - With x seeded to 1 the 10000th x value should be 1043618065       =
-//=   - From R. Jain, "The Art of Computer Systems Performance Analysis," =
-//=     John Wiley & Sons, 1991. (Page 443, Figure 26.2)                  =
-//=========================================================================
-/*
-int rand_val_int(int seed, int limit)
-{
-    const ULLI a = 16807;      // Multiplier
-    const ULLI m = 2147483647; // Modulus
-    const ULLI q = 127773;     // m div a
-    const ULLI r = 2836;       // m mod a
-    static ULLI x_int;             // Random int value
-    ULLI x_div_q;              // x_int divided by q
-    ULLI x_mod_q;              // x_int modulo q
-
-    // Set the seed if argument is non-zero and then return zero
-    if (seed > 0){
-        x_int = seed;
-        return (0.0);
-    }
-
-    // RNG using integer arithmetic
-    x_div_q = x_int / q;
-    x_mod_q = x_int % q;
-    x_int = (a * x_mod_q) - (r * x_div_q);
-
-    // Return a random value between 0.0 and 1.0
-    return (int) floor ( (double)x_int / m * limit );
-}
-*/
 
 
 double calculate_std(int *arr, int arr_size, double mean)
