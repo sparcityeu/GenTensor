@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	int random_seed = 1;
 	int outfile_entered=0;
 	int print_header = 0;
-	int print_debug = 0;
+	int print_debug = 1;
 
 	char outfile[200];
 	
