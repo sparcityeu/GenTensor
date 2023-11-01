@@ -30,7 +30,15 @@ int main(int argc, char *argv[])
 
 	int input; 
 	double density, density_slice, density_fiber, cv_fib_per_slc, cv_nz_per_fib;
+	double density_requested, density_slice_requested, density_fiber_requested, cv_fib_per_slc_requested, cv_nz_per_fib_requested;
 	
+	double avg_fib_per_slc, std_fib_per_slc, avg_nz_per_fib, std_nz_per_fib;
+	double avg_fib_per_slc_requested, std_fib_per_slc_requested, avg_nz_per_fib_requested, std_nz_per_fib_requested;
+	
+	ULLI slc_cnt_total, fib_cnt_total;
+	ULLI nnz, nz_fib_cnt, nz_slc_cnt;
+	ULLI nnz_requested, nz_fib_cnt_requested, nz_slc_cnt_requested;
+
 	density = 0.001;
 	density_fiber = 0.01;
 	density_slice = 1.0;
@@ -103,6 +111,7 @@ int main(int argc, char *argv[])
 	
 	srand(random_seed);
 	
+	
 	if (print_header){
 		printf("name \t seed \t order \t ");
 		
@@ -110,8 +119,10 @@ int main(int argc, char *argv[])
 			printf("dim_%d \t ", i);
 		}
 		
-		printf("REQST \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t SLC_TYPE \t slc_type \t ");
-		printf("RESLT \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t nz_slc_cnt \t nz_fib_cnt \t nnz \t ");
+		printf("slc_type \t ");
+		
+		printf("REQST \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t SLC_TYPE \t slc_type \t ");
+		printf("RESLT \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t ");
 		printf("threads \t TIME \t time_slc \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
 	}
 	
@@ -120,39 +131,50 @@ int main(int argc, char *argv[])
 	for (int i = 0; i< order; i++){
 		printf("%d \t ", dim[i]);
 	}
-	
-	printf("REQST \t %g \t %g \t %g \t %g \t %g \t ", density_slice, density_fiber, density, cv_fib_per_slc, cv_nz_per_fib);
-	
-	if (density_slice > 0.97) {
-		density_slice = 1.0;
-	}
-	
+			
 	int id_first = dim[order-2];
 	int id_second = dim[order-1];
 	
-	ULLI slc_cnt_total = 1;
+	slc_cnt_total = 1;
 	
 	for (int i = 0; i< order-2; i++){
 		slc_cnt_total *= dim[i];
 	}
 	
-	ULLI fib_cnt_total = slc_cnt_total * id_first;
+	fib_cnt_total = slc_cnt_total * id_first;
 	
-	ULLI nnz = (ULLI) (density * id_second * fib_cnt_total );
-		
-	ULLI nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
-	ULLI nz_fib_cnt = (ULLI) ( density_fiber * fib_cnt_total );
+	nnz = (ULLI) (density * id_second * fib_cnt_total );
 	
-	double avg_fib_per_slc = (nz_fib_cnt+0.0) / nz_slc_cnt ;
-	double std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
+	nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
 
-	double avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
-	double std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+	nz_fib_cnt = (ULLI) ( density_fiber * fib_cnt_total );
 	
+	avg_fib_per_slc = (nz_fib_cnt+0.0) / nz_slc_cnt ;
+	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
 
+	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
+	std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+
+	nnz_requested = nnz;
+	nz_fib_cnt_requested = nz_fib_cnt;
+	nz_slc_cnt_requested = nz_slc_cnt;
+	density_slice_requested = density_slice;
+	density_fiber_requested = density_fiber;
+	density_requested = density;
+	cv_fib_per_slc_requested = cv_fib_per_slc;
+	cv_nz_per_fib_requested = cv_nz_per_fib;
+	avg_fib_per_slc_requested = avg_fib_per_slc;
+	std_fib_per_slc_requested = std_fib_per_slc;
+	avg_nz_per_fib_requested = avg_nz_per_fib;
+	std_nz_per_fib_requested = std_nz_per_fib;
 	
-	printf("%g \t %g \t %g \t %g \t %llu \t %llu \t %llu \t ", std_fib_per_slc, std_nz_per_fib, avg_fib_per_slc, avg_nz_per_fib, nz_slc_cnt, nz_fib_cnt, nnz);
-
+	
+	if (density_slice > 0.97) {
+		density_slice = 1.0;
+		nz_slc_cnt = slc_cnt_total;
+	}
+	
+	
 	// if (std_fib_per_slc < 1){
 		// std_fib_per_slc = 1.0;
 	// }
@@ -160,6 +182,7 @@ int main(int argc, char *argv[])
 	// if (std_nz_per_fib < 1){
 		// std_nz_per_fib = 1.0;
 	// }
+	
 	
 	ULLI nz_slc_cnt_max = nz_slc_cnt;
 	
@@ -176,7 +199,7 @@ int main(int argc, char *argv[])
 	
 	if (print_debug) printf(" \n *** Starting to determine the nonzero slice indices ... \n ");
 	
-	
+
 	//time for slice count
 	double time_start1 = omp_get_wtime();
 	
@@ -189,7 +212,7 @@ int main(int argc, char *argv[])
 		if (order == 3){
 			
 			#pragma omp parallel for
-			for (int j = 0; j < nz_slc_cnt; j++) {
+			for (ULLI j = 0; j < nz_slc_cnt; j++) {
 				nz_slc_inds[0][j] = j;
 			}
 		}
@@ -198,7 +221,7 @@ int main(int argc, char *argv[])
 			int divider = dim [1];
 			
 			#pragma omp parallel for
-			for (int j = 0; j < nz_slc_cnt; j++) {
+			for (ULLI j = 0; j < nz_slc_cnt; j++) {
 				nz_slc_inds[1][j] = j % divider;
 				nz_slc_inds[0][j] = j / divider;
 			}
@@ -210,7 +233,7 @@ int main(int argc, char *argv[])
 			ULLI divider_big = (ULLI) dim[2] * dim[1];
 			
 			#pragma omp parallel for	
-			for (int j = 0; j < nz_slc_cnt; j++) {
+			for (ULLI j = 0; j < nz_slc_cnt; j++) {
 				nz_slc_inds[2][j] = j % divider;
 				nz_slc_inds[1][j] = j / divider;
 				nz_slc_inds[0][j] = j / divider_big;
@@ -222,7 +245,7 @@ int main(int argc, char *argv[])
 			int divider = dim [order-3];
 			
 			#pragma omp parallel for
-			for (int j = 0; j < nz_slc_cnt; j++) {
+			for (ULLI j = 0; j < nz_slc_cnt; j++) {
 				nz_slc_inds[order-3][j] = j % divider;
 				nz_slc_inds[order-4][j] = j / divider;
 			}
@@ -233,7 +256,7 @@ int main(int argc, char *argv[])
 				divider_big *= dim [i+1];		
 			
 				#pragma omp parallel for
-				for (int j = 0; j < nz_slc_cnt; j++) {
+				for (ULLI j = 0; j < nz_slc_cnt; j++) {
 					nz_slc_inds[i][j] = j / divider_big;
 				}
 			}
@@ -249,11 +272,11 @@ int main(int argc, char *argv[])
 		USHI *is_slc_empty = (USHI *) safe_calloc(slc_cnt_total, sizeof(USHI));	
 
 		// select the empty slices instead of nonzeros because they are less
-		int empty_slc_cnt = (slc_cnt_total - nz_slc_cnt) * 1.03;
+		ULLI empty_slc_cnt = (slc_cnt_total - nz_slc_cnt) * 1.03;
 		
 		// unsigned int mystate = random_seed * order + nz_slc_cnt;
 		
-		for (int j = 0; j < empty_slc_cnt; j++) {	
+		for (ULLI j = 0; j < empty_slc_cnt; j++) {	
 			is_slc_empty [rand() % slc_cnt_total] = 1;
 		}
 		
@@ -272,7 +295,7 @@ int main(int argc, char *argv[])
 
 			int divider = dim [1];
 			
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				if (is_slc_empty [j] == 0){
 					nz_slc_inds[1][nz_slc_cnt] = j % divider;
 					nz_slc_inds[0][nz_slc_cnt] = j / divider;
@@ -286,7 +309,7 @@ int main(int argc, char *argv[])
 			int divider = dim [2];
 			ULLI divider_big = (ULLI) dim [2] * dim [1];
 			
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				if (is_slc_empty [j] == 0 ){
 					nz_slc_inds[2][nz_slc_cnt] = j % divider;
 					nz_slc_inds[1][nz_slc_cnt] = j / divider;
@@ -300,7 +323,7 @@ int main(int argc, char *argv[])
 			
 			int divider = dim [order-3];
 			
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				if (is_slc_empty [j] == 0 ){
 					nz_slc_inds[order-3][nz_slc_cnt] = j % divider;
 					nz_slc_inds[order-4][nz_slc_cnt] = j / divider;
@@ -313,7 +336,7 @@ int main(int argc, char *argv[])
 			for (int i = order-5; i >= 0; i--) {	
 				divider_big *= dim [i+1];		
 			
-				for (int j = 0; j < slc_cnt_total; j++) {
+				for (ULLI j = 0; j < slc_cnt_total; j++) {
 					if (is_slc_empty [j] == 0 ){
 						nz_slc_inds [i][nz_slc_cnt] = j / divider_big;
 						nz_slc_cnt++;
@@ -331,7 +354,7 @@ int main(int argc, char *argv[])
 		nz_slc_cnt = 0;
 		
 		if (order == 3){
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				double random_number = (double)rand() / RAND_MAX;
 				if (density_slice >= random_number) {
 					nz_slc_inds[0][nz_slc_cnt] = j;
@@ -342,7 +365,7 @@ int main(int argc, char *argv[])
 		
 		else if (order == 4){
 			int divider = dim [1];
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				double random_number = (double)rand() / RAND_MAX;
 				if (density_slice >= random_number) {
 					nz_slc_inds[1][nz_slc_cnt] = j % divider;
@@ -357,7 +380,7 @@ int main(int argc, char *argv[])
 			int divider = dim [2];
 			ULLI divider_big = (ULLI) dim [2] * dim [1];
 			
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				double random_number = (double)rand() / RAND_MAX;
 				if (density_slice >= random_number) {
 					nz_slc_inds[2][nz_slc_cnt] = j % divider;
@@ -372,7 +395,7 @@ int main(int argc, char *argv[])
 			
 			int divider = dim [order-3];
 			
-			for (int j = 0; j < slc_cnt_total; j++) {
+			for (ULLI j = 0; j < slc_cnt_total; j++) {
 				double random_number = (double)rand() / RAND_MAX;
 				if (density_slice >= random_number) {
 					nz_slc_inds[order-3][nz_slc_cnt] = j % divider;
@@ -399,7 +422,7 @@ int main(int argc, char *argv[])
 		//#pragma omp parallel for
 		for (int i = 0; i < order-2; i++) {
 			curr_dim = dim[i];
-			for (int j = 0; j < nz_slc_cnt; j++) {
+			for (ULLI j = 0; j < nz_slc_cnt; j++) {
 				nz_slc_inds[i][j] = rand() % curr_dim;
 			}
 		}
@@ -408,13 +431,18 @@ int main(int argc, char *argv[])
 	
 	double time_nz_slc = omp_get_wtime() - time_start1;
 	
-	printf("SLC_TYPE \t %d \t ", slc_category);
+	density_slice = (double) nz_slc_cnt / slc_cnt_total;
 	
+	printf("%d \t ", slc_category);
+	
+	printf("nz_slc_cnt \t %llu \t %llu \t %g \t ", nz_slc_cnt_requested, nz_slc_cnt, (nz_slc_cnt+0.0)/nz_slc_cnt_requested );
+	printf("density_slc \t %g \t %g \t %g \t ", density_slice_requested, density_slice, (density_slice+0.0)/density_slice_requested );
+		
 	if (print_debug) printf(" \n *** Determining the nonzero slice indices is done. \n ");
 	
 	
 	//update with changed nz_slc_cnt
-	avg_fib_per_slc = nz_fib_cnt / nz_slc_cnt ;
+	avg_fib_per_slc = (nz_fib_cnt_requested + 0.0 ) / nz_slc_cnt ;
 	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
 
 	int *fib_per_slice = safe_malloc(nz_slc_cnt * sizeof(int));
@@ -466,17 +494,26 @@ int main(int argc, char *argv[])
 	
 	
 	double time_fib_per_slc = omp_get_wtime() - time_start1;
-	
-	if (print_debug) printf(" \n *** Determining fib indices in slices is done. \n ");
+
 	
 	ULLI *prefix_fib_per_slice = (ULLI *)safe_calloc(nz_slc_cnt+1 , sizeof(ULLI ));
-	for (int i = 0; i < nz_slc_cnt; i++) {
+	for (ULLI i = 0; i < nz_slc_cnt; i++) {
 		prefix_fib_per_slice[i+1] = prefix_fib_per_slice[i] + fib_per_slice[i];
 	}
 	
 	nz_fib_cnt = prefix_fib_per_slice[nz_slc_cnt];
+	density_fiber = (nz_fib_cnt + 0.0) / fib_cnt_total;
 	avg_fib_per_slc = (nz_fib_cnt + 0.0) / nz_slc_cnt;
 	std_fib_per_slc = calculate_std(fib_per_slice, nz_slc_cnt, avg_fib_per_slc);
+	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
+		
+	printf("nz_fib_cnt \t %llu \t %llu \t %g \t ", nz_fib_cnt_requested, nz_fib_cnt, (nz_fib_cnt+0.0)/nz_fib_cnt_requested );
+	printf("density_fib \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, (density_fiber+0.0)/density_fiber_requested );	
+	printf("avg_fib_per_slc \t %g \t %g \t %g \t ", avg_fib_per_slc_requested, avg_fib_per_slc, (avg_fib_per_slc+0.0)/avg_fib_per_slc_requested );
+	printf("std_fib_per_slc \t %g \t %g \t %g \t ", std_fib_per_slc_requested, std_fib_per_slc, (std_fib_per_slc+0.0)/std_fib_per_slc_requested );
+	printf("cv_fib_per_slc \t %g \t %g \t %g \t ", cv_fib_per_slc_requested, cv_fib_per_slc, (cv_fib_per_slc+0.0)/cv_fib_per_slc_requested );
+	
+	if (print_debug) printf(" \n *** Determining fib indices in slices is done. \n ");
 	
 	//update with changed nz_fib_cnt
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
@@ -530,17 +567,27 @@ int main(int argc, char *argv[])
 	
 	double time_nz_per_fib = omp_get_wtime() - time_start1;
 	
-	if (print_debug) printf(" \n *** Determining nz indices in fibers is done. \n ");
-	
+
 	ULLI *prefix_nz_per_fiber = (ULLI *)safe_calloc(nz_fib_cnt+1 , sizeof(ULLI ));
-	for (int j = 0; j < nz_fib_cnt; j++){
+	for (ULLI j = 0; j < nz_fib_cnt; j++){
 		prefix_nz_per_fiber[j+1] = prefix_nz_per_fiber[j] + nz_per_fiber[j];
 	}
 	
 	nnz = prefix_nz_per_fiber [nz_fib_cnt];
+	density =  ( (nnz + 0.0) / fib_cnt_total ) / id_second ;
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
 	std_nz_per_fib = calculate_std(nz_per_fiber, nz_fib_cnt, avg_nz_per_fib);
+	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
 	
+		
+	printf("nnz \t %llu \t %llu \t %g \t ", nnz_requested, nnz, (nnz+0.0)/nnz_requested );
+	printf("density \t %g \t %g \t %g \t ", density_requested, density, (density+0.0)/density_requested );
+	printf("avg_nz_per_fib \t %g \t %g \t %g \t ", avg_nz_per_fib_requested, avg_nz_per_fib, (avg_nz_per_fib+0.0)/avg_nz_per_fib_requested );
+	printf("std_nz_per_fib \t %g \t %g \t %g \t ", std_nz_per_fib_requested, std_nz_per_fib, (std_nz_per_fib+0.0)/std_nz_per_fib_requested );
+	printf("cv_nz_per_fib \t %g \t %g \t %g \t ", cv_nz_per_fib_requested, cv_nz_per_fib, (cv_nz_per_fib+0.0)/cv_nz_per_fib_requested );
+
+	
+	if (print_debug) printf(" \n *** Determining nz indices in fibers is done. \n ");
 	
 	time_start1 = omp_get_wtime();
 	
@@ -551,7 +598,7 @@ int main(int argc, char *argv[])
 	}
 	
 	#pragma omp parallel for
-	for (int i = 0; i < nz_slc_cnt; i++){	//for each nonzero slice
+	for (ULLI i = 0; i < nz_slc_cnt; i++){	//for each nonzero slice
 		int fib_curr_slice = fib_per_slice[i];
 		ULLI prefix_fib_start = prefix_fib_per_slice[i];
 		for (int j = 0; j < fib_curr_slice; j++) {	//for each fiber in curr slice
@@ -589,13 +636,13 @@ int main(int argc, char *argv[])
 	}
 	fprintf(fptr, "\n");
 	
-
 	for (int n = 0; n < nnz; n++){
 		// fprintf(fptr, "%d %d %d ", ind_0[n]+1, ind_1[n]+1, ind_2[n]+1);
 		for (int i = 0; i < order; i++){
 			fprintf(fptr, "%d ", ind[i][n]+1);
 		}
-		fprintf(fptr, "%g\n", (double)rand() / RAND_MAX );
+		fprintf(fptr, "%.1f\n", (rand() % 9 + 1.0) / 10 );	// random numbers between 0.1 and 0.9 
+		// fprintf(fptr, "%.1f\n", (double)rand() / RAND_MAX + 0.1 );
     }
 	
 	fclose(fptr);
@@ -604,16 +651,6 @@ int main(int argc, char *argv[])
 	
 	if (print_debug) printf(" \n *** Writing the generated tensor into output file is done. \n ");
 	
-	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
-	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
-	density =  ( (nnz + 0.0) / fib_cnt_total ) / id_second ;
-	density_fiber = (double) nz_fib_cnt / fib_cnt_total;
-	density_slice = (double) nz_slc_cnt / slc_cnt_total;
-
-
-	printf("RESLT \t %g \t %g \t %g \t %g \t %g \t ", density_slice, density_fiber, density, cv_fib_per_slc, cv_nz_per_fib);
-	printf("%g \t %g \t %g \t %g \t %llu \t %llu \t %llu \t ", std_fib_per_slc, std_nz_per_fib, avg_fib_per_slc, avg_nz_per_fib, nz_slc_cnt, nz_fib_cnt, nnz);
-
 	
 	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_nz_slc, time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
 	
