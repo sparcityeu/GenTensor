@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 	int outfile_entered=0;
 	int print_header = 0;
 	int print_debug = 1;
+	int write_tensor = 0;
 
 	char outfile[200];
 	
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:h:p:")) != -1)
+	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:h:p:w:")) != -1)
     {
 		switch (input)
 		{	
@@ -95,6 +96,9 @@ int main(int argc, char *argv[])
 				break;
 			
 			case 'p':  print_debug = atoi(optarg);
+				break;
+				
+			case 'w':  write_tensor = atoi(optarg);
 				break;
 				
 		}
@@ -197,7 +201,7 @@ int main(int argc, char *argv[])
 		nz_slc_inds[i] = (int *) safe_malloc(nz_slc_cnt_max * sizeof(int));
 	}
 	
-	if (print_debug) printf(" \n *** Starting to determine the nonzero slice indices ... \n ");
+	if (print_debug) printf(" \n ***SLICE_START \n ");
 	
 
 	//time for slice count
@@ -436,9 +440,9 @@ int main(int argc, char *argv[])
 	printf("%d \t ", slc_category);
 	
 	printf("nz_slc_cnt \t %llu \t %llu \t %g \t ", nz_slc_cnt_requested, nz_slc_cnt, (nz_slc_cnt+0.0)/nz_slc_cnt_requested );
-	printf("density_slc \t %g \t %g \t %g \t ", density_slice_requested, density_slice, (density_slice+0.0)/density_slice_requested );
+	printf("density_slc \t %g \t %g ", density_slice_requested, density_slice);
 		
-	if (print_debug) printf(" \n *** Determining the nonzero slice indices is done. \n ");
+	if (print_debug) printf(" \n ***SLICE_DONE \n ");
 	
 	
 	//update with changed nz_slc_cnt
@@ -456,11 +460,10 @@ int main(int argc, char *argv[])
 		#pragma omp for
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
 			// Generate a normally distributed rv
-			int fib_curr_slice =  (int) round (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
+			int fib_curr_slice =  (int) floor (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
 			
-			fib_curr_slice *= 1.01; // to adjust nz
 
-			if ( fib_curr_slice < 1 ){
+			if ( fib_curr_slice < 1 || fib_curr_slice > id_first){
 				fib_curr_slice = 1;
 			}
 			
@@ -508,12 +511,12 @@ int main(int argc, char *argv[])
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
 		
 	printf("nz_fib_cnt \t %llu \t %llu \t %g \t ", nz_fib_cnt_requested, nz_fib_cnt, (nz_fib_cnt+0.0)/nz_fib_cnt_requested );
-	printf("density_fib \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, (density_fiber+0.0)/density_fiber_requested );	
+	printf("density_fib \t %g \t %g \t ", density_fiber_requested, density_fiber);	
 	printf("avg_fib_per_slc \t %g \t %g \t %g \t ", avg_fib_per_slc_requested, avg_fib_per_slc, (avg_fib_per_slc+0.0)/avg_fib_per_slc_requested );
 	printf("std_fib_per_slc \t %g \t %g \t %g \t ", std_fib_per_slc_requested, std_fib_per_slc, (std_fib_per_slc+0.0)/std_fib_per_slc_requested );
 	printf("cv_fib_per_slc \t %g \t %g \t %g \t ", cv_fib_per_slc_requested, cv_fib_per_slc, (cv_fib_per_slc+0.0)/cv_fib_per_slc_requested );
 	
-	if (print_debug) printf(" \n *** Determining fib indices in slices is done. \n ");
+	if (print_debug) printf(" \n ***FIBER_DONE \n ");
 	
 	//update with changed nz_fib_cnt
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
@@ -530,10 +533,8 @@ int main(int argc, char *argv[])
 		#pragma omp for
 		for (int j = 0; j < nz_fib_cnt; j++){
 			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
-
-			nz_curr_fib *= 1.01; // to adjust nz
 			
-			if ( nz_curr_fib < 1 ){
+			if ( nz_curr_fib < 1 || nz_curr_fib > id_second){
 				nz_curr_fib = 1;
 			}
 
@@ -581,13 +582,13 @@ int main(int argc, char *argv[])
 	
 		
 	printf("nnz \t %llu \t %llu \t %g \t ", nnz_requested, nnz, (nnz+0.0)/nnz_requested );
-	printf("density \t %g \t %g \t %g \t ", density_requested, density, (density+0.0)/density_requested );
+	printf("density \t %g \t %g \t ", density_requested, density);
 	printf("avg_nz_per_fib \t %g \t %g \t %g \t ", avg_nz_per_fib_requested, avg_nz_per_fib, (avg_nz_per_fib+0.0)/avg_nz_per_fib_requested );
 	printf("std_nz_per_fib \t %g \t %g \t %g \t ", std_nz_per_fib_requested, std_nz_per_fib, (std_nz_per_fib+0.0)/std_nz_per_fib_requested );
 	printf("cv_nz_per_fib \t %g \t %g \t %g \t ", cv_nz_per_fib_requested, cv_nz_per_fib, (cv_nz_per_fib+0.0)/cv_nz_per_fib_requested );
 
 	
-	if (print_debug) printf(" \n *** Determining nz indices in fibers is done. \n ");
+	if (print_debug) printf(" \n ***NONZERO_DONE \n ");
 	
 	time_start1 = omp_get_wtime();
 	
@@ -618,38 +619,39 @@ int main(int argc, char *argv[])
 	
 	double time_nz_ind = omp_get_wtime() - time_start1;
 	
-	if (print_debug) printf(" \n *** ind array is constructed. \n ");
+	if (print_debug) printf(" \n ***IND_DONE \n ");
 	
 	
 	time_start1 = omp_get_wtime();
+	
+	if (write_tensor){
 		
-	FILE *fptr;
-	fptr = fopen(outfile, "w");
-	if( fptr == NULL ) {
-		printf ("\n *** ERROR WHILE OPENING OUT FILE ! *** \n\n");
-		exit(1);  
-	}
-	
-	fprintf(fptr, "%d\n", order);
-	for (int i = 0; i<order; i++){
-		fprintf(fptr, "%d ", dim[i]);
-	}
-	fprintf(fptr, "\n");
-	
-	for (int n = 0; n < nnz; n++){
-		// fprintf(fptr, "%d %d %d ", ind_0[n]+1, ind_1[n]+1, ind_2[n]+1);
-		for (int i = 0; i < order; i++){
-			fprintf(fptr, "%d ", ind[i][n]+1);
+		FILE *fptr;
+		fptr = fopen(outfile, "w");
+		if( fptr == NULL ) {
+			printf ("\n *** ERROR WHILE OPENING OUT FILE ! *** \n\n");
+			exit(1);  
 		}
-		fprintf(fptr, "%.1f\n", (rand() % 9 + 1.0) / 10 );	// random numbers between 0.1 and 0.9 
-		// fprintf(fptr, "%.1f\n", (double)rand() / RAND_MAX + 0.1 );
-    }
-	
-	fclose(fptr);
+		
+		fprintf(fptr, "%d\n", order);
+		for (int i = 0; i<order; i++){
+			fprintf(fptr, "%d ", dim[i]);
+		}
+		fprintf(fptr, "\n");
+		
+		for (int n = 0; n < nnz; n++){
+			// fprintf(fptr, "%d %d %d ", ind_0[n]+1, ind_1[n]+1, ind_2[n]+1);
+			for (int i = 0; i < order; i++){
+				fprintf(fptr, "%d ", ind[i][n]+1);
+			}
+			fprintf(fptr, "%.1f\n", (rand() % 9 + 1.0) / 10 );	// random numbers between 0.1 and 0.9 
+			// fprintf(fptr, "%.1f\n", (double)rand() / RAND_MAX + 0.1 );
+		}
+		
+		fclose(fptr);
+	}
 
 	double time_end = omp_get_wtime();
-	
-	if (print_debug) printf(" \n *** Writing the generated tensor into output file is done. \n ");
 	
 	
 	printf("%d \t TIME \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \t %.7f \n ", omp_get_max_threads(), time_nz_slc, time_fib_per_slc, time_nz_per_fib, time_nz_ind, time_end - time_start1, time_end - time_start);
