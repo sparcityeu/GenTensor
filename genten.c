@@ -20,8 +20,8 @@ double norm_box_muller(double mean, double stdev, int seed_bm);
 double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( ULLI *array, int array_size);
 void print_vec_double ( double *array, int array_size);
-void *safe_malloc(int size);
-void *safe_calloc(int count, int size);
+void *safe_malloc(size_t size);
+void *safe_calloc(size_t count, size_t size);
 void printusage();
 
 int main(int argc, char *argv[])
@@ -48,8 +48,8 @@ int main(int argc, char *argv[])
 	int random_seed = 1;
 	int outfile_entered=0;
 	int print_header = 0;
-	int print_debug = 1;
-	int write_tensor = 0;
+	int print_debug = 0;
+	int write_tensor = 1;
 
 	char outfile[200];
 	
@@ -749,24 +749,24 @@ void print_vec_double ( double *array, int array_size)
 	
 }
 
-void *safe_malloc(int size)
+void *safe_malloc(size_t size)
 {
     void *loc = malloc(size);
     if (loc == NULL)
     {
-        printf(" genten.c : safe_malloc : Memory (%d = %d GB) could not be allocated\n", size, size/ INTSIZE);
+        printf(" genten.c : safe_malloc : Memory (%lu = %lu GB) could not be allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
     return loc;
 }
 
-void *safe_calloc(int count, int size)
+void *safe_calloc(size_t count, size_t size)
 {
     void *loc = calloc(count, size);
     if (loc == NULL)
     {
-        printf(" genten.c : safe_calloc : Memory (%d = %d GB) could not be (c)allocated\n", size, size/ INTSIZE);
+        printf(" genten.c : safe_calloc : Memory (%lu = %lu GB) could not be (c)allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
@@ -787,6 +787,7 @@ void printusage()
 	printf("\t-o outfile : to print out the generated tensor \n");
 	printf("\t-h print_header : to print the header names for the output values \n");
 	printf("\t-p print_debug : to print at some main steps for debugging \n");
+	printf("\t-w write_tensor : to write the generated tensor into a file in COO format \n");
 
 	exit(1);
 }

@@ -14,7 +14,8 @@ Usage:
 	-r random_seed : seed for randomness                                                                                                                          
 	-o outfile : to print out the generated tensor
 	-h print_header : to print the header names for the output values 
-	-p print_debug : to print at some main steps for debugging 
+	-p print_debug : to print at some main steps for debugging
+	-w write_tensor : to write the generated tensor into a file
 
 An example run command will be like the following:
 
