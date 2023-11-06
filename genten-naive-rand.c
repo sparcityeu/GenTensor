@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
         for (int j = 0; j < order; j++){
             fprintf(fptr, "%d ", rand() % dim[j] +1);
 		}
-        fprintf(fptr, "%lf\n", (double)rand() / RAND_MAX);
+		fprintf(fptr, "%.1f\n", (rand() % 9 + 1.0) / 10 );	// random numbers between 0.1 and 0.9 
     }
 	
 	fclose(fptr);

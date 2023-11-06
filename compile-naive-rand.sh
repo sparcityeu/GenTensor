@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gcc -O2 -Wall -fopenmp tengen-naive-rand.c -o tengen_naive_rand -lm 
+gcc -O2 -Wall -fopenmp genten-naive-rand.c -o genten_naive_rand -lm 
