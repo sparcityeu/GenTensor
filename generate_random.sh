@@ -12,4 +12,4 @@
 ./genten_naive_rand 12092 9184 28818 -n 76879419 -o ../data_tensors_random/nell2_random.tns;
 ./genten_naive_rand 2482 2862 14036 -n 3101609 -i 17 -o ../data_tensors_random/nips_random.tns;
 ./genten_naive_rand 183 24 1140 -n 3309490 -i 1717 -o ../data_tensors_random/uber_random.tns;
-./genten_naive_rand 4 532924 17262471 2480308 -i 1443 -n 140126220 -o ../data_tensors_random/delicious-4d_random.tns;
+./genten_naive_rand 532924 17262471 2480308 -i 1443 -n 140126220 -o ../data_tensors_random/delicious-4d_random.tns;
