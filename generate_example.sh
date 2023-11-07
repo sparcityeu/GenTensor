@@ -12,9 +12,9 @@
 ./genten 4 183 24 1140 1717  -d 0.000384967 -f 0.138329 -v 1.335808 -s 0.999772 -c 0.237467 -o ../data_tensors_generated/uber_generated.tns;
 ./genten 5 6185 24 380 395 32 -d 8.87E-06 -f 0.000282242 -v 1.002787 -s 0.101218 -c 0.948495 -o ../data_tensors_generated/chicago-crime-geo_generated.tns;
 ./genten 5 1605 4198 1631 4209 868131 -d 4.23E-14 -f 8.44E-10 -v 26.212985 -s 2.09E-06 -c 8.034473 -o ../data_tensors_generated/lbnl-network_generated.tns;
-./genten 3 38954435 38955429 532 -d 1.73E-10 -f 9.16E-08 -v 1.003084 -s 0.91059 -c 23.976581 -o ../data_tensors_generated/freebase_sampled_generated.tns;
 ./genten 4 532924 17262471 2480308 1443  -d 4.26E-15 -f 3.21E-11 -v 1 -s 5.14E-06 -c 1.716754 -o ../data_tensors_generated/delicious-4d_generated.tns;
-./genten 3 23343790 23344784 166 -d 1.10E-09 -f 1.81E-07 -v 1.003985 -s 0.970722 -c 24.420532 -o ../data_tensors_generated/freebase_music_generated.tns;
 ./genten 3 532924 17262471 2480308 -d 3.21E-11 -f 5.14E-06 -v 1.716754 -s 1 -c 2.772508 -o ../data_tensors_generated/delicious-3d_generated.tns;
+./genten 3 38954435 38955429 532 -d 1.73E-10 -f 9.16E-08 -v 1.003084 -s 0.91059 -c 23.976581 -o ../data_tensors_generated/freebase_sampled_generated.tns;
+./genten 3 23343790 23344784 166 -d 1.10E-09 -f 1.81E-07 -v 1.003985 -s 0.970722 -c 24.420532 -o ../data_tensors_generated/freebase_music_generated.tns;
 ./genten 3 2902330 2143368 25495389 -d 1.30E-11 -f 2.79E-06 -v 7.564635 -s 1 -c 13.631399 -o ../data_tensors_generated/nell1_generated.tns;
 ./genten 3 4821207 1774269 1805187 -d 1.13E-10 -f 3.49E-06 -v 1.670313 -s 1 -c 46.19288 -o ../data_tensors_generated/amazon-reviews_generated.tns;
