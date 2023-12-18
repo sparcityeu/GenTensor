@@ -15,7 +15,7 @@
  https://cse.usf.edu/~kchriste/tools/gennorm.c 
  */
 
-// double norm_box_muller(double mean, double stdev);
+int rand_log_norm(double mean, double stdev, int seed_bm);
 double norm_box_muller(double mean, double stdev, int seed_bm);
 double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( ULLI *array, int array_size);
@@ -33,7 +33,11 @@ int main(int argc, char *argv[])
 	double density_requested, density_slice_requested, density_fiber_requested, cv_fib_per_slc_requested, cv_nz_per_fib_requested;
 	
 	double avg_fib_per_slc, std_fib_per_slc, avg_nz_per_fib, std_nz_per_fib;
+	double avg_log_norm, std_log_norm, avg_square, std_square;
 	double avg_fib_per_slc_requested, std_fib_per_slc_requested, avg_nz_per_fib_requested, std_nz_per_fib_requested;
+	
+	double imbal_fib_per_slc, imbal_nz_per_fib;
+	int max_fib_per_slc, max_nz_per_fib;
 	
 	ULLI slc_cnt_total, fib_cnt_total;
 	ULLI nnz, nz_fib_cnt, nz_slc_cnt;
@@ -42,6 +46,8 @@ int main(int argc, char *argv[])
 	density = 0.001;
 	density_fiber = 0.01;
 	density_slice = 1.0;
+	imbal_fib_per_slc = -1;
+	imbal_nz_per_fib = -1;
 	
 	cv_fib_per_slc = cv_nz_per_fib = 0.5;
 	
@@ -65,7 +71,7 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	while ((input = getopt(argc, argv, "d:s:f:c:v:r:o:h:p:w:")) != -1)
+	while ((input = getopt(argc, argv, "d:s:f:c:v:i:b:r:o:h:p:w:")) != -1)
     {
 		switch (input)
 		{	
@@ -83,6 +89,12 @@ int main(int argc, char *argv[])
 				break;
 				
 			case 'v': 	cv_nz_per_fib = atof(optarg);
+				break;
+				
+			case 'i': 	imbal_fib_per_slc = atof(optarg);
+				break;
+				
+			case 'b': 	imbal_nz_per_fib = atof(optarg);
 				break;
 				
 			case 'r':  random_seed = atoi(optarg);
@@ -158,6 +170,29 @@ int main(int argc, char *argv[])
 
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
 	std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+	
+	max_fib_per_slc = id_first;
+	max_nz_per_fib = id_second;
+	
+	if (imbal_fib_per_slc != -1.0){
+		max_fib_per_slc = (int) round (imbal_fib_per_slc * avg_fib_per_slc + avg_fib_per_slc);
+	}
+	if (imbal_nz_per_fib != -1.0){
+		max_nz_per_fib = (int) round (imbal_nz_per_fib * avg_nz_per_fib + avg_nz_per_fib);
+	}
+	
+	if (max_fib_per_slc > id_first){
+		max_fib_per_slc = id_first;
+	}
+	
+	if (max_nz_per_fib > id_second){
+		max_nz_per_fib = id_second;
+	}
+	
+	//temporary for try. erase these two lines later.
+	max_fib_per_slc = id_first;
+	max_nz_per_fib = id_second;
+	
 
 	nnz_requested = nnz;
 	nz_fib_cnt_requested = nz_fib_cnt;
@@ -439,8 +474,8 @@ int main(int argc, char *argv[])
 	
 	printf("%d \t ", slc_category);
 	
-	printf("nz_slc_cnt \t %llu \t %llu \t %g \t ", nz_slc_cnt_requested, nz_slc_cnt, (nz_slc_cnt+0.0)/nz_slc_cnt_requested );
-	printf("density_slc \t %g \t %g ", density_slice_requested, density_slice);
+	printf("nz_slc_cnt \t %llu \t %llu \t ", nz_slc_cnt_requested, nz_slc_cnt );
+	printf("density_slc \t %g \t %g \t %g \t ", density_slice_requested, density_slice, density_slice/density_slice_requested);
 		
 	if (print_debug) printf(" \n ***SLICE_DONE \n ");
 	
@@ -448,7 +483,14 @@ int main(int argc, char *argv[])
 	//update with changed nz_slc_cnt
 	avg_fib_per_slc = (nz_fib_cnt_requested + 0.0 ) / nz_slc_cnt ;
 	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
+	
+	// convertion for log-normal distribution
+	avg_square = avg_fib_per_slc*avg_fib_per_slc;
+	std_square = std_fib_per_slc*std_fib_per_slc;
+	avg_log_norm = log(avg_square / sqrt(avg_square + std_square));
+	std_log_norm = sqrt(log(1 + std_square / avg_square));
 
+	
 	int *fib_per_slice = safe_malloc(nz_slc_cnt * sizeof(int));
 	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
 
@@ -460,11 +502,12 @@ int main(int argc, char *argv[])
 		#pragma omp for
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
 			// Generate a normally distributed rv
-			int fib_curr_slice =  (int) floor (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
 			
-
-			if ( fib_curr_slice < 1 || fib_curr_slice > id_first){
-				fib_curr_slice = 1;
+			int fib_curr_slice =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+1) );
+			// int fib_curr_slice =  (int) floor (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
+			
+			if ( fib_curr_slice > max_fib_per_slc){
+				fib_curr_slice = max_fib_per_slc;
 			}
 			
 			for (int j = 0; j < id_first; j++){
@@ -490,6 +533,10 @@ int main(int argc, char *argv[])
 				}
 			}
 			
+			if ( fib_curr_slice > max_fib_per_slc){
+				fib_curr_slice = max_fib_per_slc;
+			}
+			
 			fib_per_slice[i] = fib_curr_slice;
 		}
 		free ( is_fib_nz );
@@ -510,8 +557,8 @@ int main(int argc, char *argv[])
 	std_fib_per_slc = calculate_std(fib_per_slice, nz_slc_cnt, avg_fib_per_slc);
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
 		
-	printf("nz_fib_cnt \t %llu \t %llu \t %g \t ", nz_fib_cnt_requested, nz_fib_cnt, (nz_fib_cnt+0.0)/nz_fib_cnt_requested );
-	printf("density_fib \t %g \t %g \t ", density_fiber_requested, density_fiber);	
+	printf("nz_fib_cnt \t %llu \t %llu \t ", nz_fib_cnt_requested, nz_fib_cnt );
+	printf("density_fib \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, density_fiber/density_fiber_requested);	
 	printf("avg_fib_per_slc \t %g \t %g \t %g \t ", avg_fib_per_slc_requested, avg_fib_per_slc, (avg_fib_per_slc+0.0)/avg_fib_per_slc_requested );
 	printf("std_fib_per_slc \t %g \t %g \t %g \t ", std_fib_per_slc_requested, std_fib_per_slc, (std_fib_per_slc+0.0)/std_fib_per_slc_requested );
 	printf("cv_fib_per_slc \t %g \t %g \t %g \t ", cv_fib_per_slc_requested, cv_fib_per_slc, (cv_fib_per_slc+0.0)/cv_fib_per_slc_requested );
@@ -521,6 +568,12 @@ int main(int argc, char *argv[])
 	//update with changed nz_fib_cnt
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
 	std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
+	
+	// convertion for log-normal distribution
+	avg_square = avg_nz_per_fib * avg_nz_per_fib;
+	std_square = std_nz_per_fib * std_nz_per_fib;
+	avg_log_norm = log(avg_square / sqrt(avg_square + std_square));
+	std_log_norm = sqrt(log(1 + std_square / avg_square));
 
 	int **nz_indices_in_fib = (int **)safe_malloc(nz_fib_cnt * sizeof(int *));
 	int *nz_per_fiber = (int *)safe_malloc(nz_fib_cnt * sizeof(int *));
@@ -532,10 +585,12 @@ int main(int argc, char *argv[])
 		USHI *is_nz_ind = (USHI*) safe_malloc(id_second * sizeof(USHI));
 		#pragma omp for
 		for (int j = 0; j < nz_fib_cnt; j++){
-			int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
 			
-			if ( nz_curr_fib < 1 || nz_curr_fib > id_second){
-				nz_curr_fib = 1;
+			int nz_curr_fib = rand_log_norm(avg_log_norm, std_log_norm, random_seed*(j+10));
+			// int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
+			
+			if ( nz_curr_fib > max_nz_per_fib){
+				nz_curr_fib = max_nz_per_fib;
 			}
 
 			for (int k = 0; k < id_second; k++){
@@ -561,6 +616,11 @@ int main(int argc, char *argv[])
 					nz_curr_fib++;
 				}
 			}
+			
+			if ( nz_curr_fib > max_nz_per_fib){
+				nz_curr_fib = max_nz_per_fib;
+			}
+			
 			nz_per_fiber[j] = nz_curr_fib;
 		}
 		free(is_nz_ind);
@@ -581,8 +641,8 @@ int main(int argc, char *argv[])
 	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
 	
 		
-	printf("nnz \t %llu \t %llu \t %g \t ", nnz_requested, nnz, (nnz+0.0)/nnz_requested );
-	printf("density \t %g \t %g \t ", density_requested, density);
+	printf("nnz \t %llu \t %llu \t ", nnz_requested, nnz );
+	printf("density \t %g \t %g \t %g \t ", density_requested, density, density/density_requested);
 	printf("avg_nz_per_fib \t %g \t %g \t %g \t ", avg_nz_per_fib_requested, avg_nz_per_fib, (avg_nz_per_fib+0.0)/avg_nz_per_fib_requested );
 	printf("std_nz_per_fib \t %g \t %g \t %g \t ", std_nz_per_fib_requested, std_nz_per_fib, (std_nz_per_fib+0.0)/std_nz_per_fib_requested );
 	printf("cv_nz_per_fib \t %g \t %g \t %g \t ", cv_nz_per_fib_requested, cv_nz_per_fib, (cv_nz_per_fib+0.0)/cv_nz_per_fib_requested );
@@ -659,6 +719,17 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+
+int rand_log_norm(double mean, double stdev, int seed_bm){
+	int val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
+	if (val<1){
+		val=1;
+	}
+	return val;
+}
+
+
 
 //===========================================================================
 //=  Function to generate normally distributed random variable using the    =
@@ -754,7 +825,7 @@ void *safe_malloc(size_t size)
     void *loc = malloc(size);
     if (loc == NULL)
     {
-        printf(" genten.c : safe_malloc : Memory (%llu = %llu GB) could not be allocated\n", size, size/ INTSIZE);
+        printf(" genten.c : safe_malloc : Memory (%lu = %lu GB) could not be allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
@@ -766,7 +837,7 @@ void *safe_calloc(size_t count, size_t size)
     void *loc = calloc(count, size);
     if (loc == NULL)
     {
-        printf(" genten.c : safe_calloc : Memory (%llu = %llu GB) could not be (c)allocated\n", size, size/ INTSIZE);
+        printf(" genten.c : safe_calloc : Memory (%lu = %lu GB) could not be (c)allocated\n", size, size/ INTSIZE);
         exit(1);
     }
 
@@ -783,6 +854,8 @@ void printusage()
 	printf("\t-s density_slice : nonzero slice ratio for mode-(M-1,M) slices \n");
 	printf("\t-c cv_fib_per_slc : coefficient of variation of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices\n");
 	printf("\t-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers\n");
+	printf("\t-i imbal_fib_per_slc : imbalance of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices. ( imbalance = max/avg-1 )\n");
+	printf("\t-b imbal_nz_per_fib : imbalance of nonzero per fiber values for mode-(M) fibers. ( imbalance = max/avg-1 )\n");
 	printf("\t-r random_seed : seed for randomness \n");
 	printf("\t-o outfile : to print out the generated tensor \n");
 	printf("\t-h print_header : to print the header names for the output values \n");
