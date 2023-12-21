@@ -8,6 +8,7 @@
 #define ULLI unsigned long long int
 #define USHI unsigned short int 
 #define INTSIZE 268435456
+#define APPLY_IMBALANCE 0
 
 
 /*
@@ -36,8 +37,8 @@ int main(int argc, char *argv[])
 	double avg_log_norm, std_log_norm, avg_square, std_square;
 	double avg_fib_per_slc_requested, std_fib_per_slc_requested, avg_nz_per_fib_requested, std_nz_per_fib_requested;
 	
-	double imbal_fib_per_slc, imbal_nz_per_fib;
-	int max_fib_per_slc, max_nz_per_fib;
+	double imbal_fib_per_slc, imbal_nz_per_fib, imbal_fib_per_slc_requested, imbal_nz_per_fib_requested;
+	int max_fib_per_slc, max_nz_per_fib, max_fib_per_slc_requested, max_nz_per_fib_requested;
 	
 	ULLI slc_cnt_total, fib_cnt_total;
 	ULLI nnz, nz_fib_cnt, nz_slc_cnt;
@@ -189,10 +190,10 @@ int main(int argc, char *argv[])
 		max_nz_per_fib = id_second;
 	}
 	
-	//temporary for try. erase these two lines later.
-	max_fib_per_slc = id_first;
-	max_nz_per_fib = id_second;
-	
+	if (!APPLY_IMBALANCE){
+		max_fib_per_slc = id_first;
+		max_nz_per_fib = id_second;
+	}
 
 	nnz_requested = nnz;
 	nz_fib_cnt_requested = nz_fib_cnt;
@@ -207,6 +208,10 @@ int main(int argc, char *argv[])
 	avg_nz_per_fib_requested = avg_nz_per_fib;
 	std_nz_per_fib_requested = std_nz_per_fib;
 	
+	imbal_fib_per_slc_requested = imbal_fib_per_slc;
+	imbal_nz_per_fib_requested = imbal_nz_per_fib;
+	max_fib_per_slc_requested = max_fib_per_slc;
+	max_nz_per_fib_requested = max_nz_per_fib;
 	
 	if (density_slice > 0.97) {
 		density_slice = 1.0;
@@ -510,33 +515,41 @@ int main(int argc, char *argv[])
 				fib_curr_slice = max_fib_per_slc;
 			}
 			
-			for (int j = 0; j < id_first; j++){
-				is_fib_nz [j] = 0;
-			}
-			
 			unsigned int mystate = random_seed * (i+1) + fib_curr_slice;
 			
-			for (int j = 0; j < fib_curr_slice; j++) {
-				is_fib_nz [rand_r(&mystate) % id_first] = 1;
-				// is_fib_nz [rand() % dim_1] = 1;
-				// is_fib_nz [ (int) floor (rand_val(0) * dim_1) ] = 1;
-				// is_fib_nz [ rand_val_int(0, dim_1) ] = 1;
+			if(fib_curr_slice==1){
+				
+				nz_fib_inds[i] = (int *)safe_malloc( 1 * sizeof(int));
+				nz_fib_inds[i][0] = rand_r(&mystate) % id_first ;
 			}
 			
-			nz_fib_inds[i] = safe_malloc(fib_curr_slice * sizeof(int)); //which fibs are nz
+			else{
 			
-			fib_curr_slice = 0;
-			for (int j = 0; j < id_first; j++) {
-				if (is_fib_nz [j]){
-					nz_fib_inds[i][fib_curr_slice] = j;
-					fib_curr_slice++;
+				for (int j = 0; j < id_first; j++){
+					is_fib_nz [j] = 0;
+				}
+				
+				for (int j = 0; j < fib_curr_slice; j++) {
+					is_fib_nz [rand_r(&mystate) % id_first] = 1;
+					// is_fib_nz [rand() % dim_1] = 1;
+					// is_fib_nz [ (int) floor (rand_val(0) * dim_1) ] = 1;
+					// is_fib_nz [ rand_val_int(0, dim_1) ] = 1;
+				}
+				
+				nz_fib_inds[i] = (int *)safe_malloc(fib_curr_slice * sizeof(int)); //which fibs are nz
+				
+				fib_curr_slice = 0;
+				for (int j = 0; j < id_first; j++) {
+					if (is_fib_nz [j]){
+						nz_fib_inds[i][fib_curr_slice] = j;
+						fib_curr_slice++;
+					}
+				}
+				
+				if ( fib_curr_slice > max_fib_per_slc){
+					fib_curr_slice = max_fib_per_slc;
 				}
 			}
-			
-			if ( fib_curr_slice > max_fib_per_slc){
-				fib_curr_slice = max_fib_per_slc;
-			}
-			
 			fib_per_slice[i] = fib_curr_slice;
 		}
 		free ( is_fib_nz );
@@ -545,10 +558,15 @@ int main(int argc, char *argv[])
 	
 	double time_fib_per_slc = omp_get_wtime() - time_start1;
 
-	
+	int curr_degree;
+	max_fib_per_slc = 0;
 	ULLI *prefix_fib_per_slice = (ULLI *)safe_calloc(nz_slc_cnt+1 , sizeof(ULLI ));
+	
 	for (ULLI i = 0; i < nz_slc_cnt; i++) {
-		prefix_fib_per_slice[i+1] = prefix_fib_per_slice[i] + fib_per_slice[i];
+		curr_degree = fib_per_slice[i];
+		prefix_fib_per_slice[i+1] = prefix_fib_per_slice[i] + curr_degree;
+		if (curr_degree > max_fib_per_slc)
+			max_fib_per_slc = curr_degree;
 	}
 	
 	nz_fib_cnt = prefix_fib_per_slice[nz_slc_cnt];
@@ -556,12 +574,18 @@ int main(int argc, char *argv[])
 	avg_fib_per_slc = (nz_fib_cnt + 0.0) / nz_slc_cnt;
 	std_fib_per_slc = calculate_std(fib_per_slice, nz_slc_cnt, avg_fib_per_slc);
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
+	imbal_fib_per_slc = ( max_fib_per_slc + 0.0 ) /  avg_fib_per_slc - 1;
 		
 	printf("nz_fib_cnt \t %llu \t %llu \t ", nz_fib_cnt_requested, nz_fib_cnt );
 	printf("density_fib \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, density_fiber/density_fiber_requested);	
 	printf("avg_fib_per_slc \t %g \t %g \t %g \t ", avg_fib_per_slc_requested, avg_fib_per_slc, (avg_fib_per_slc+0.0)/avg_fib_per_slc_requested );
 	printf("std_fib_per_slc \t %g \t %g \t %g \t ", std_fib_per_slc_requested, std_fib_per_slc, (std_fib_per_slc+0.0)/std_fib_per_slc_requested );
 	printf("cv_fib_per_slc \t %g \t %g \t %g \t ", cv_fib_per_slc_requested, cv_fib_per_slc, (cv_fib_per_slc+0.0)/cv_fib_per_slc_requested );
+	
+	if (APPLY_IMBALANCE){
+		printf("max_fib_per_slc \t %d \t %d \t %g \t ", max_fib_per_slc_requested, max_fib_per_slc, (max_fib_per_slc+0.0)/max_fib_per_slc_requested );
+		printf("imbal_fib_per_slc \t %g \t %g \t %g \t ", imbal_fib_per_slc_requested, imbal_fib_per_slc, (imbal_fib_per_slc+0.0)/imbal_fib_per_slc_requested );
+	}
 	
 	if (print_debug) printf(" \n ***FIBER_DONE \n ");
 	
@@ -592,33 +616,42 @@ int main(int argc, char *argv[])
 			if ( nz_curr_fib > max_nz_per_fib){
 				nz_curr_fib = max_nz_per_fib;
 			}
-
-			for (int k = 0; k < id_second; k++){
-				is_nz_ind [k] = 0;
-			}
 			
 			unsigned int mystate = random_seed * (j+5) + nz_curr_fib;
 			
-			//randomly fill nonzero values
-			for (int k = 0; k < nz_curr_fib; k++){
-				is_nz_ind [rand_r(&mystate) % id_second] = 1;
-				// is_nz_ind [rand() % dim_2] = 1;
-				// is_nz_ind [ (int) floor (rand_val(0) * dim_2) ] = 1;
-				// is_nz_ind [ rand_val_int(0, dim_2) ] = 1;
+			if(nz_curr_fib==1){
+				
+				nz_indices_in_fib[j] = (int *)safe_malloc( 1 * sizeof(int));
+				nz_indices_in_fib[j][0] = rand_r(&mystate) % id_second ;
 			}
 			
-			nz_indices_in_fib[j] = (int *)safe_calloc( nz_curr_fib , sizeof(int));
-			
-			nz_curr_fib = 0;
-			for (int k = 0; k < id_second; k++) {
-				if (is_nz_ind [k]){
-					nz_indices_in_fib[j][nz_curr_fib] = k ;
-					nz_curr_fib++;
+			else{
+
+				for (int k = 0; k < id_second; k++){
+					is_nz_ind [k] = 0;
 				}
-			}
-			
-			if ( nz_curr_fib > max_nz_per_fib){
-				nz_curr_fib = max_nz_per_fib;
+				
+				//randomly fill nonzero values
+				for (int k = 0; k < nz_curr_fib; k++){
+					is_nz_ind [rand_r(&mystate) % id_second] = 1;
+					// is_nz_ind [rand() % dim_2] = 1;
+					// is_nz_ind [ (int) floor (rand_val(0) * dim_2) ] = 1;
+					// is_nz_ind [ rand_val_int(0, dim_2) ] = 1;
+				}
+				
+				nz_indices_in_fib[j] = (int *)safe_calloc( nz_curr_fib , sizeof(int));
+				
+				nz_curr_fib = 0;
+				for (int k = 0; k < id_second; k++) {
+					if (is_nz_ind [k]){
+						nz_indices_in_fib[j][nz_curr_fib] = k ;
+						nz_curr_fib++;
+					}
+				}
+				
+				if ( nz_curr_fib > max_nz_per_fib){
+					nz_curr_fib = max_nz_per_fib;
+				}
 			}
 			
 			nz_per_fiber[j] = nz_curr_fib;
@@ -628,25 +661,35 @@ int main(int argc, char *argv[])
 	
 	double time_nz_per_fib = omp_get_wtime() - time_start1;
 	
-
+	
+	max_nz_per_fib = 0;
 	ULLI *prefix_nz_per_fiber = (ULLI *)safe_calloc(nz_fib_cnt+1 , sizeof(ULLI ));
-	for (ULLI j = 0; j < nz_fib_cnt; j++){
-		prefix_nz_per_fiber[j+1] = prefix_nz_per_fiber[j] + nz_per_fiber[j];
+	
+	for (ULLI i = 0; i < nz_fib_cnt; i++) {
+		curr_degree = nz_per_fiber[i];
+		prefix_nz_per_fiber[i+1] = prefix_nz_per_fiber[i] + curr_degree;
+		if (curr_degree > max_nz_per_fib)
+			max_nz_per_fib = curr_degree;
 	}
 	
+
 	nnz = prefix_nz_per_fiber [nz_fib_cnt];
 	density =  ( (nnz + 0.0) / fib_cnt_total ) / id_second ;
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
 	std_nz_per_fib = calculate_std(nz_per_fiber, nz_fib_cnt, avg_nz_per_fib);
 	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
-	
+	imbal_nz_per_fib = ( max_nz_per_fib + 0.0 ) /  avg_nz_per_fib - 1 ;
 		
 	printf("nnz \t %llu \t %llu \t ", nnz_requested, nnz );
 	printf("density \t %g \t %g \t %g \t ", density_requested, density, density/density_requested);
 	printf("avg_nz_per_fib \t %g \t %g \t %g \t ", avg_nz_per_fib_requested, avg_nz_per_fib, (avg_nz_per_fib+0.0)/avg_nz_per_fib_requested );
 	printf("std_nz_per_fib \t %g \t %g \t %g \t ", std_nz_per_fib_requested, std_nz_per_fib, (std_nz_per_fib+0.0)/std_nz_per_fib_requested );
 	printf("cv_nz_per_fib \t %g \t %g \t %g \t ", cv_nz_per_fib_requested, cv_nz_per_fib, (cv_nz_per_fib+0.0)/cv_nz_per_fib_requested );
-
+	
+	if (APPLY_IMBALANCE){
+		printf("max_nz_per_fib \t %d \t %d \t %g \t ", max_nz_per_fib_requested, max_nz_per_fib, (max_nz_per_fib+0.0)/max_nz_per_fib_requested );
+		printf("imbal_nz_per_fib \t %g \t %g \t %g \t ", imbal_nz_per_fib_requested, imbal_nz_per_fib, (imbal_nz_per_fib+0.0)/imbal_nz_per_fib_requested );
+	}
 	
 	if (print_debug) printf(" \n ***NONZERO_DONE \n ");
 	
@@ -724,13 +767,13 @@ int main(int argc, char *argv[])
 int rand_log_norm(double mean, double stdev, int seed_bm){
 	int val;
 	if(stdev == 0){
-		val = mean;
+		val = (int) round ( mean );
 	}
 	else{
 		val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
-		if (val<1){
-			val=1;
-		}
+	}
+	if (val<1){
+		val=1;
 	}
 	return val;
 }
