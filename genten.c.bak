@@ -519,8 +519,8 @@ int main(int argc, char *argv[])
 			
 			if(fib_curr_slice==1){
 				
-				nz_fib_inds[j] = (int *)safe_malloc( 1 * sizeof(int));
-				nz_fib_inds[j][0] = rand_r(&mystate) % id_first ;
+				nz_fib_inds[i] = (int *)safe_malloc( 1 * sizeof(int));
+				nz_fib_inds[i][0] = rand_r(&mystate) % id_first ;
 			}
 			
 			else{
