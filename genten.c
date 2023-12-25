@@ -9,6 +9,8 @@
 #define USHI unsigned short int 
 #define INTSIZE 268435456
 #define APPLY_IMBALANCE 1
+#define RATIO_MIN 0.95
+#define RATIO_MAX 1.05
 
 
 /*
@@ -500,20 +502,48 @@ int main(int argc, char *argv[])
 	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
 
 	time_start1 = omp_get_wtime();
+	
+	// construct fib_per_slice and calculate nz_fib_cnt
+	nz_fib_cnt = 0;
+	#pragma omp parallel for reduction(+ : nz_fib_cnt)
+	for (ULLI i = 0; i < nz_slc_cnt; i++) {
+		
+		int fib_curr_slice =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+1) );
+		// int fib_curr_slice =  (int) floor (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
+		
+		nz_fib_cnt += fib_curr_slice;
+		
+		fib_per_slice[i] = fib_curr_slice;
+	}
+	
+	double fib_ratio = nz_fib_cnt_requested / nz_fib_cnt ;
+	
+	//scale fib_per_slice for true average if needed
+	if (fib_ratio <RATIO_MIN || fib_ratio > RATIO_MAX){	
+		
+		#pragma omp parallel for
+		for (ULLI i = 0; i < nz_slc_cnt; i++) {
+			int fib_curr_slice = (int) round (fib_per_slice[i] * fib_ratio);
+			
+			if ( fib_curr_slice > max_fib_per_slc){
+				fib_curr_slice = max_fib_per_slc;
+			}
+			
+			if ( fib_curr_slice < 1){
+				fib_curr_slice = 1;
+			}
+			fib_per_slice[i] = fib_curr_slice;
+		}
+	}
 
+	//determine indices
 	#pragma omp parallel
     {
 		USHI *is_fib_nz = (USHI *) safe_malloc(id_first * sizeof(USHI));	
 		#pragma omp for
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
-			// Generate a normally distributed rv
 			
-			int fib_curr_slice =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+1) );
-			// int fib_curr_slice =  (int) floor (  norm_box_muller( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) ) );
-			
-			if ( fib_curr_slice > max_fib_per_slc){
-				fib_curr_slice = max_fib_per_slc;
-			}
+			int fib_curr_slice =  fib_per_slice[i];
 			
 			unsigned int mystate = random_seed * (i+1) + fib_curr_slice;
 			
@@ -604,18 +634,47 @@ int main(int argc, char *argv[])
 	
 	time_start1 = omp_get_wtime();
 	
+	// construct nz_per_fiber and calculate nnz
+	nnz = 0;
+	#pragma omp parallel for reduction(+ : nnz)
+	for (ULLI i = 0; i < nz_fib_cnt; i++) {
+		
+		int nz_curr_fib =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+10) );
+		// int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10)));
+		
+		nnz += nz_curr_fib;
+		
+		nz_per_fiber[i] = nz_curr_fib;
+	}
+	
+	double nz_ratio = nnz_requested / nnz ;
+	
+	//scale nz_per_fiber for true average if needed
+	if (nz_ratio < RATIO_MIN || nz_ratio > RATIO_MAX){	
+		
+		#pragma omp parallel for
+		for (ULLI i = 0; i < nz_fib_cnt; i++) {
+			int nz_curr_fib = (int) round (nz_per_fiber[i] * nz_ratio);
+			
+			if ( nz_curr_fib > max_nz_per_fib){
+				nz_curr_fib = max_nz_per_fib;
+			}
+			
+			if ( nz_curr_fib < 1){
+				nz_curr_fib = 1;
+			}
+			nz_per_fiber[i] = nz_curr_fib;
+		}
+	}
+
+	//determine indices
 	#pragma omp parallel
     {
 		USHI *is_nz_ind = (USHI*) safe_malloc(id_second * sizeof(USHI));
 		#pragma omp for
 		for (int j = 0; j < nz_fib_cnt; j++){
 			
-			int nz_curr_fib = rand_log_norm(avg_log_norm, std_log_norm, random_seed*(j+10));
-			// int nz_curr_fib = (int) round ( norm_box_muller(avg_nz_per_fib, std_nz_per_fib, random_seed*(j+10)));
-			
-			if ( nz_curr_fib > max_nz_per_fib){
-				nz_curr_fib = max_nz_per_fib;
-			}
+			int nz_curr_fib = nz_per_fiber[j];
 			
 			unsigned int mystate = random_seed * (j+5) + nz_curr_fib;
 			
