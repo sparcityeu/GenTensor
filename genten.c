@@ -18,8 +18,8 @@
  https://cse.usf.edu/~kchriste/tools/gennorm.c 
  */
 
-int rand_log_norm(double mean, double stdev, int seed_bm);
-int rand_normal(double mean, double stdev, int seed_bm);
+// int rand_log_norm(double mean, double stdev, int seed_bm);
+// int rand_normal(double mean, double stdev, int seed_bm);
 double norm_box_muller(double mean, double stdev, int seed_bm);
 double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( ULLI *array, int array_size);
@@ -493,8 +493,8 @@ int main(int argc, char *argv[])
 	avg_fib_per_slc = (nz_fib_cnt_requested + 0.0 ) / nz_slc_cnt ;
 	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
 	
-	int *fib_per_slice = safe_malloc(nz_slc_cnt * sizeof(int));
-	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
+	int *fib_per_slice = (int*) safe_malloc(nz_slc_cnt * sizeof(int));
+	double *fib_per_slice_double = (double*) safe_malloc(nz_slc_cnt * sizeof(double));
 
 	time_start1 = omp_get_wtime();
 	
@@ -505,6 +505,7 @@ int main(int argc, char *argv[])
 	if(std_fib_per_slc == 0){
 		#pragma omp parallel for 
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
+			fib_per_slice_double[i] = avg_fib_per_slc;
 			fib_per_slice[i] = (int) round ( avg_fib_per_slc );
 		}
 		nz_fib_cnt = nz_slc_cnt * fib_per_slice[0];
@@ -512,17 +513,24 @@ int main(int argc, char *argv[])
 	else{
 	
 		if( avg_fib_per_slc - 3 * std_fib_per_slc > 0 ){ // apply normal distribution if most values are expected to be positive
-			#pragma omp parallel for reduction(+ : nz_fib_cnt)
+			
+			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_slc_cnt; i++) {
 				
-				int fib_curr_slice =  rand_normal( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) );
+				double fib_curr_slice_double = norm_box_muller ( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) );
+				// int fib_curr_slice =  rand_normal( avg_fib_per_slc, std_fib_per_slc, random_seed*(i+1) );
+				
+				int fib_curr_slice = (int) round ( fib_curr_slice_double);
+				
+				if ( fib_curr_slice < 1){
+					fib_curr_slice = 1;
+				}
 				
 				if ( fib_curr_slice > max_fib_per_slc){
 					fib_curr_slice = max_fib_per_slc;
 				}
 				
-				nz_fib_cnt += fib_curr_slice;
-				
+				fib_per_slice_double[i] = fib_curr_slice_double;
 				fib_per_slice[i] = fib_curr_slice;
 			}
 			
@@ -537,21 +545,30 @@ int main(int argc, char *argv[])
 			avg_log_norm = log(avg_square / sqrt(avg_square + std_square));
 			std_log_norm = sqrt(log(1 + std_square / avg_square));
 	
-			#pragma omp parallel for reduction(+ : nz_fib_cnt)
+			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_slc_cnt; i++) {
 				
-				int fib_curr_slice =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+1) );
+				double fib_curr_slice_double = exp ( norm_box_muller (avg_log_norm, std_log_norm, random_seed*(i+1) ) );
+				// int fib_curr_slice =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+1) );
 				
+				int fib_curr_slice = (int) round ( fib_curr_slice_double);
+				
+				if ( fib_curr_slice < 1){
+					fib_curr_slice = 1;
+				}
 				if ( fib_curr_slice > max_fib_per_slc){
 					fib_curr_slice = max_fib_per_slc;
 				}
 				
-				nz_fib_cnt += fib_curr_slice;
-				
+				fib_per_slice_double[i] = fib_curr_slice_double;
 				fib_per_slice[i] = fib_curr_slice;
 			}
-			
 			distribution_type = 2;
+		}
+		
+		#pragma omp parallel for reduction(+ : nz_fib_cnt)
+		for (ULLI i = 0; i < nz_slc_cnt; i++) {
+			nz_fib_cnt += fib_per_slice[i];
 		}
 	}
 	
@@ -562,7 +579,7 @@ int main(int argc, char *argv[])
 		
 		#pragma omp parallel for
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
-			int fib_curr_slice = (int) round (fib_per_slice[i] * fib_ratio);
+			int fib_curr_slice = (int) round (fib_per_slice_double[i] * fib_ratio);
 			
 			if ( fib_curr_slice > max_fib_per_slc){
 				fib_curr_slice = max_fib_per_slc;
@@ -574,6 +591,9 @@ int main(int argc, char *argv[])
 			fib_per_slice[i] = fib_curr_slice;
 		}
 	}
+	
+	free (fib_per_slice_double);
+	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
 
 	//determine indices
 	#pragma omp parallel
@@ -657,7 +677,7 @@ int main(int argc, char *argv[])
 	printf("cv_fib_per_slc \t %g \t %g \t %g \t ", cv_fib_per_slc_requested, cv_fib_per_slc, (cv_fib_per_slc+0.0)/cv_fib_per_slc_requested );
 	printf("avg_fib_per_slc \t %g \t %g \t %g \t ", avg_fib_per_slc_requested, avg_fib_per_slc, (avg_fib_per_slc+0.0)/avg_fib_per_slc_requested );
 	printf("nz_fib_cnt \t %llu \t %llu \t ", nz_fib_cnt_requested, nz_fib_cnt );
-	printf("density_fib \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, density_fiber/density_fiber_requested);	
+	printf("density_fib \t %g \t %g \t %g \t %g \t ", density_fiber_requested, density_fiber, 1/fib_ratio, density_fiber/density_fiber_requested);	
 	
 	
 	if (print_debug) printf(" \n ***FIBER_DONE \n ");
@@ -667,9 +687,8 @@ int main(int argc, char *argv[])
 	std_nz_per_fib = cv_nz_per_fib * avg_nz_per_fib;
 	
 	
-
-	int **nz_indices_in_fib = (int **)safe_malloc(nz_fib_cnt * sizeof(int *));
 	int *nz_per_fiber = (int *)safe_malloc(nz_fib_cnt * sizeof(int *));
+	double *nz_per_fiber_double = (double *)safe_malloc(nz_fib_cnt * sizeof(double *));
 	
 	distribution_type = 0;
 	
@@ -682,6 +701,7 @@ int main(int argc, char *argv[])
 	if(std_nz_per_fib == 0){
 		#pragma omp parallel for 
 		for (ULLI i = 0; i < nz_fib_cnt; i++) {
+			nz_per_fiber_double[i] = avg_nz_per_fib ;
 			nz_per_fiber[i] = (int) round ( avg_nz_per_fib );
 		}
 		nnz = nz_fib_cnt * nz_per_fiber[0];
@@ -691,17 +711,23 @@ int main(int argc, char *argv[])
 		
 		if( avg_nz_per_fib - 3 * std_nz_per_fib > 0 ){ // apply normal distribution if most values are expected to be positive
 		
-			#pragma omp parallel for reduction(+ : nnz)
+			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_fib_cnt; i++) {
 				
-				int nz_curr_fib =  rand_normal( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10) );
+				double nz_curr_fib_double =  norm_box_muller( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10) );
+				// int nz_curr_fib =  rand_normal( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10) );
 				
+				int nz_curr_fib = (int) round ( nz_curr_fib_double );
+				
+				if ( nz_curr_fib < 1){
+					nz_curr_fib = 1;
+				}
+			
 				if ( nz_curr_fib > max_nz_per_fib){
 					nz_curr_fib = max_nz_per_fib;
 				}
 				
-				nnz += nz_curr_fib;
-				
+				nz_per_fiber_double[i] = nz_curr_fib_double;
 				nz_per_fiber[i] = nz_curr_fib;
 			}
 			distribution_type = 1;
@@ -714,20 +740,31 @@ int main(int argc, char *argv[])
 			avg_log_norm = log(avg_square / sqrt(avg_square + std_square));
 			std_log_norm = sqrt(log(1 + std_square / avg_square));
 	
-			#pragma omp parallel for reduction(+ : nnz)
+			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_fib_cnt; i++) {
 				
-				int nz_curr_fib =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+10) );
+				double nz_curr_fib_double =  exp ( norm_box_muller ( avg_log_norm, std_log_norm, random_seed*(i+10) ));
+				// int nz_curr_fib =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+10) );
 				
+				int nz_curr_fib =  (int) round ( nz_curr_fib_double );
+				
+				if ( nz_curr_fib < 1){
+					nz_curr_fib = 1;
+				}
+			
 				if ( nz_curr_fib > max_nz_per_fib){
 					nz_curr_fib = max_nz_per_fib;
 				}
 				
-				nnz += nz_curr_fib;
-				
+				nz_per_fiber_double[i] = nz_curr_fib_double;
 				nz_per_fiber[i] = nz_curr_fib;
 			}
 			distribution_type = 2;
+		}
+		
+		#pragma omp parallel for reduction(+ : nnz)
+		for (ULLI i = 0; i < nz_fib_cnt; i++) {
+			nnz += nz_per_fiber[i];
 		}
 	}
 	
@@ -738,7 +775,7 @@ int main(int argc, char *argv[])
 		
 		#pragma omp parallel for
 		for (ULLI i = 0; i < nz_fib_cnt; i++) {
-			int nz_curr_fib = (int) round (nz_per_fiber[i] * nz_ratio);
+			int nz_curr_fib = (int) round (nz_per_fiber_double[i] * nz_ratio);
 			
 			if ( nz_curr_fib > max_nz_per_fib){
 				nz_curr_fib = max_nz_per_fib;
@@ -751,6 +788,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	free (nz_per_fiber_double);
+	int **nz_indices_in_fib = (int **)safe_malloc(nz_fib_cnt * sizeof(int *));
+	
 	//determine indices
 	#pragma omp parallel
     {
@@ -834,7 +874,7 @@ int main(int argc, char *argv[])
 	printf("cv_nz_per_fib \t %g \t %g \t %g \t ", cv_nz_per_fib_requested, cv_nz_per_fib, (cv_nz_per_fib+0.0)/cv_nz_per_fib_requested );
 	printf("avg_nz_per_fib \t %g \t %g \t %g \t ", avg_nz_per_fib_requested, avg_nz_per_fib, (avg_nz_per_fib+0.0)/avg_nz_per_fib_requested );
 	printf("nnz \t %llu \t %llu \t ", nnz_requested, nnz );
-	printf("density \t %g \t %g \t %g \t ", density_requested, density, density/density_requested);
+	printf("density \t %g \t %g \t %g \t %g \t ", density_requested, density, 1/nz_ratio, density/density_requested);
 	
 	
 	if (print_debug) printf(" \n ***NONZERO_DONE \n ");
@@ -910,28 +950,28 @@ int main(int argc, char *argv[])
 }
 
 // random number with log-normal distribution
-int rand_log_norm(double mean, double stdev, int seed_bm){
-	int val;
+// int rand_log_norm(double mean, double stdev, int seed_bm){
+	// int val;
 
-	val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
+	// val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
 	
-	if (val<1){
-		val=1;
-	}
-	return val;
-}
+	// if (val<1){
+		// val=1;
+	// }
+	// return val;
+// }
 
 // random number with normal distribution
-int rand_normal(double mean, double stdev, int seed_bm){
-	int val;
+// int rand_normal(double mean, double stdev, int seed_bm){
+	// int val;
 	
-	val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
+	// val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
 	
-	if (val<1){
-		val=1;
-	}
-	return val;
-}
+	// if (val<1){
+		// val=1;
+	// }
+	// return val;
+// }
 
 
 
