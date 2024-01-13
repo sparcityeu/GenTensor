@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	double imbal_fib_per_slc, imbal_nz_per_fib, imbal_fib_per_slc_requested, imbal_nz_per_fib_requested;
 	int max_fib_per_slc, max_nz_per_fib, max_fib_per_slc_requested, max_nz_per_fib_requested;
 	
-	ULLI slc_cnt_total, fib_cnt_total;
+	ULLI slc_cnt_total;
 	ULLI nnz, nz_fib_cnt, nz_slc_cnt;
 	ULLI nnz_requested, nz_fib_cnt_requested, nz_slc_cnt_requested;
 
@@ -165,15 +165,18 @@ int main(int argc, char *argv[])
 	
 	fib_cnt_total = slc_cnt_total * id_first;
 	
-	nnz = (ULLI) (density * id_second * fib_cnt_total );
-	
-	if (print_debug){
-		printf("slc_cnt_total : %lld \t ", slc_cnt_total);
-	}
+	nnz = (ULLI) (density * slc_cnt_total * id_first * id_second );
 	
 	nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
 
-	nz_fib_cnt = (ULLI) ( density_fiber * fib_cnt_total );
+	nz_fib_cnt = (ULLI) ( density_fiber * slc_cnt_total * id_first );
+	
+	if (print_debug){
+		printf("\nslc_cnt_total : %lld \n", slc_cnt_total);
+		printf("nnz : %lld \n", nnz);
+		printf("nz_slc_cnt : %lld \n", nz_slc_cnt);
+		printf("nz_fib_cnt : %lld \n", nz_fib_cnt);
+	}
 	
 	avg_fib_per_slc = (nz_fib_cnt+0.0) / nz_slc_cnt ;
 	std_fib_per_slc = cv_fib_per_slc * avg_fib_per_slc;
@@ -663,7 +666,7 @@ int main(int argc, char *argv[])
 	}
 	
 	nz_fib_cnt = prefix_fib_per_slice[nz_slc_cnt];
-	density_fiber = (nz_fib_cnt + 0.0) / fib_cnt_total;
+	density_fiber = (nz_fib_cnt + 0.0) / slc_cnt_total / id_first;
 	avg_fib_per_slc = (nz_fib_cnt + 0.0) / nz_slc_cnt;
 	std_fib_per_slc = calculate_std(fib_per_slice, nz_slc_cnt, avg_fib_per_slc);
 	cv_fib_per_slc = (double) std_fib_per_slc / avg_fib_per_slc;
@@ -861,7 +864,7 @@ int main(int argc, char *argv[])
 	
 
 	nnz = prefix_nz_per_fiber [nz_fib_cnt];
-	density =  ( (nnz + 0.0) / fib_cnt_total ) / id_second ;
+	density =  (nnz + 0.0) / slc_cnt_total / id_first / id_second ;
 	avg_nz_per_fib = (nnz + 0.0) / nz_fib_cnt;
 	std_nz_per_fib = calculate_std(nz_per_fiber, nz_fib_cnt, avg_nz_per_fib);
 	cv_nz_per_fib = (double) std_nz_per_fib / avg_nz_per_fib;
