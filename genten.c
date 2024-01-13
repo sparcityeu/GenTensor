@@ -167,6 +167,12 @@ int main(int argc, char *argv[])
 	
 	nnz = (ULLI) (density * id_second * fib_cnt_total );
 	
+	if (print_debug){
+		printf("\nslc_cnt_total : %lld \n", slc_cnt_total);
+		printf("fib_cnt_total : %lld \n", fib_cnt_total);
+		printf("nnz : %lld \n", nnz);
+	}
+	
 	nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
 
 	nz_fib_cnt = (ULLI) ( density_fiber * fib_cnt_total );

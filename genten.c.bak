@@ -18,8 +18,8 @@
  https://cse.usf.edu/~kchriste/tools/gennorm.c 
  */
 
-int rand_log_norm(double mean, double stdev, int seed_bm);
-int rand_normal(double mean, double stdev, int seed_bm);
+// int rand_log_norm(double mean, double stdev, int seed_bm);
+// int rand_normal(double mean, double stdev, int seed_bm);
 double norm_box_muller(double mean, double stdev, int seed_bm);
 double calculate_std(int *arr, int arr_size, double mean);
 void print_vec ( ULLI *array, int array_size);
@@ -166,6 +166,10 @@ int main(int argc, char *argv[])
 	fib_cnt_total = slc_cnt_total * id_first;
 	
 	nnz = (ULLI) (density * id_second * fib_cnt_total );
+	
+	if (print_debug){
+		printf("slc_cnt_total : %lld \t ", slc_cnt_total);
+	}
 	
 	nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
 
@@ -950,28 +954,28 @@ int main(int argc, char *argv[])
 }
 
 // random number with log-normal distribution
-int rand_log_norm(double mean, double stdev, int seed_bm){
-	int val;
+// int rand_log_norm(double mean, double stdev, int seed_bm){
+	// int val;
 
-	val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
+	// val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
 	
-	if (val<1){
-		val=1;
-	}
-	return val;
-}
+	// if (val<1){
+		// val=1;
+	// }
+	// return val;
+// }
 
 // random number with normal distribution
-int rand_normal(double mean, double stdev, int seed_bm){
-	int val;
+// int rand_normal(double mean, double stdev, int seed_bm){
+	// int val;
 	
-	val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
+	// val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
 	
-	if (val<1){
-		val=1;
-	}
-	return val;
-}
+	// if (val<1){
+		// val=1;
+	// }
+	// return val;
+// }
 
 
 
