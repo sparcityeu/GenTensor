@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <cstdint>
 #include <omp.h>
 
 #define ULLI unsigned long long int
@@ -163,12 +164,8 @@ int main(int argc, char *argv[])
 		slc_cnt_total *= dim[i];
 	}
 	
-	fib_cnt_total = slc_cnt_total * id_first;
-	
 	nnz = (ULLI) (density * slc_cnt_total * id_first * id_second );
-	
 	nz_slc_cnt = (ULLI) ( density_slice * slc_cnt_total );
-
 	nz_fib_cnt = (ULLI) ( density_fiber * slc_cnt_total * id_first );
 	
 	if (print_debug){
@@ -176,6 +173,12 @@ int main(int argc, char *argv[])
 		printf("nnz : %lld \n", nnz);
 		printf("nz_slc_cnt : %lld \n", nz_slc_cnt);
 		printf("nz_fib_cnt : %lld \n", nz_fib_cnt);
+		
+		ULLI try_ulli = 25*1000*1000*1000*1000*1000*1000;
+		unsigned __int128 try_128 = 25*1000*1000*1000*1000*1000*1000;
+		
+		printf("try_ulli : %lld \n", try_ulli);
+		printf("try_128 : %lld \n", try_128);
 	}
 	
 	avg_fib_per_slc = (nz_fib_cnt+0.0) / nz_slc_cnt ;
