@@ -1,5 +1,6 @@
 # Tensor-Generator
-This program generates sparse tensors with some given requested features.
+The **genTen** program generates sparse tensors with several given features.
+It adopts a combination of normal distribution and log-normal distribution.
 
 To compile the program, use the command
 ```
@@ -9,15 +10,15 @@ To compile the program, use the command
 USAGE: 
 
 ```
-./genten sizes[] [options]                                                                                                                               
-	-d density : nonzero ratio                                                                                                                                         
-	-f density_fiber : nonzero fiber ratio for mode-(M) fibers                                                                                                           
+./genten sizes[] [options]                                                                                                              
+	-d density : nonzero ratio                                                                                                      
+	-f density_fiber : nonzero fiber ratio for mode-(M) fibers                                                                      
 	-s density_slice : nonzero slice ratio for mode-(M-1,M) slices
 	-c cv_fib_per_slc : coefficient of variation of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices 	
 	-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers  
 	-i imbal_fib_per_slc : imbalance of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices. ( imbalance = max/avg-1 )
 	-b imbal_nz_per_fib : imbalance of nonzero per fiber values for mode-(M) fibers. ( imbalance = max/avg-1 )	
-	-r random_seed : seed for randomness                                                                                                                          
+	-r random_seed : seed for randomness                                                                                             
 	-o outfile : to print out the generated tensor
 	-h print_header : to print the header names for the output values 
 	-p print_debug : to print at some main steps for debugging
@@ -33,4 +34,6 @@ Example run commands will be like the following:
 ./genten 3 10000 15000 20000 -d 2E-09 -f 0.0002 -v 23.1 -s 0.8 -c 13.0 -o sample_generated.tns;
 ```
 
-A list of commands to generate tensors with the same features as real tensors is in file **generate_example.sh**.
+A list of commands to generate tensors using genTen with the same features as real tensors are in file **generate_example.sh**.
+
+The **genten_naive_rand** program generates simple naive random tensors, it is just for comparison.
