@@ -228,16 +228,6 @@ int main(int argc, char *argv[])
 		nz_slc_cnt = slc_cnt_total;
 	}
 	
-	
-	// if (std_fib_per_slc < 1){
-		// std_fib_per_slc = 1.0;
-	// }
-	
-	// if (std_nz_per_fib < 1){
-		// std_nz_per_fib = 1.0;
-	// }
-	
-	
 	ULLI nz_slc_cnt_max = nz_slc_cnt;
 	
 	//for memory and number accuracy
@@ -327,8 +317,6 @@ int main(int argc, char *argv[])
 
 		// select the empty slices instead of nonzeros because they are less
 		ULLI empty_slc_cnt = (slc_cnt_total - nz_slc_cnt) * 1.03;
-		
-		// unsigned int mystate = random_seed * order + nz_slc_cnt;
 		
 		for (ULLI j = 0; j < empty_slc_cnt; j++) {	
 			is_slc_empty [rand() % slc_cnt_total] = 1;
@@ -505,9 +493,11 @@ int main(int argc, char *argv[])
 	
 	nz_fib_cnt = 0;
 	
+	random_seed = random_seed * order + id_second % 10;
+	
 	// construct fib_per_slice and calculate nz_fib_cnt
 	
-	if(std_fib_per_slc == 0){
+	if(std_fib_per_slc == 0.0){
 		#pragma omp parallel for 
 		for (ULLI i = 0; i < nz_slc_cnt; i++) {
 			fib_per_slice_double[i] = avg_fib_per_slc;
@@ -599,6 +589,7 @@ int main(int argc, char *argv[])
 	
 	free (fib_per_slice_double);
 	int **nz_fib_inds = (int **)safe_malloc(nz_slc_cnt * sizeof(int *));
+	random_seed += fib_per_slice[0]%10;
 
 	//determine indices
 	#pragma omp parallel
@@ -609,7 +600,7 @@ int main(int argc, char *argv[])
 			
 			int fib_curr_slice =  fib_per_slice[i];
 			
-			unsigned int mystate = random_seed * (i+1) + fib_curr_slice;
+			unsigned int mystate = random_seed * (i+2) + fib_curr_slice;
 			
 			if(fib_curr_slice==1){
 				
@@ -697,12 +688,13 @@ int main(int argc, char *argv[])
 	
 	distribution_type = 0;
 	
+	random_seed += max_fib_per_slc % 10;
+	
 	time_start1 = omp_get_wtime();
-	
-	nnz = 0;
-	
+
 	// construct nz_per_fiber and calculate nnz
 	
+	nnz = 0;
 	if(std_nz_per_fib == 0){
 		#pragma omp parallel for 
 		for (ULLI i = 0; i < nz_fib_cnt; i++) {
@@ -719,7 +711,7 @@ int main(int argc, char *argv[])
 			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_fib_cnt; i++) {
 				
-				double nz_curr_fib_double =  norm_box_muller( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10) );
+				double nz_curr_fib_double =  norm_box_muller( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+3) );
 				// int nz_curr_fib =  rand_normal( avg_nz_per_fib, std_nz_per_fib, random_seed*(i+10) );
 				
 				int nz_curr_fib = (int) round ( nz_curr_fib_double );
@@ -748,7 +740,7 @@ int main(int argc, char *argv[])
 			#pragma omp parallel for
 			for (ULLI i = 0; i < nz_fib_cnt; i++) {
 				
-				double nz_curr_fib_double =  exp ( norm_box_muller ( avg_log_norm, std_log_norm, random_seed*(i+10) ));
+				double nz_curr_fib_double =  exp ( norm_box_muller ( avg_log_norm, std_log_norm, random_seed*(i+3) ));
 				// int nz_curr_fib =  rand_log_norm( avg_log_norm, std_log_norm, random_seed*(i+10) );
 				
 				int nz_curr_fib =  (int) round ( nz_curr_fib_double );
@@ -795,6 +787,7 @@ int main(int argc, char *argv[])
 
 	free (nz_per_fiber_double);
 	int **nz_indices_in_fib = (int **)safe_malloc(nz_fib_cnt * sizeof(int *));
+	random_seed += nz_per_fiber[0] % 10;
 	
 	//determine indices
 	#pragma omp parallel
@@ -953,31 +946,6 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-// random number with log-normal distribution
-// int rand_log_norm(double mean, double stdev, int seed_bm){
-	// int val;
-
-	// val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
-	
-	// if (val<1){
-		// val=1;
-	// }
-	// return val;
-// }
-
-// random number with normal distribution
-// int rand_normal(double mean, double stdev, int seed_bm){
-	// int val;
-	
-	// val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
-	
-	// if (val<1){
-		// val=1;
-	// }
-	// return val;
-// }
-
 
 
 //===========================================================================
