@@ -10,7 +10,7 @@ To compile the program, use the command
 USAGE: 
 
 ```
-./genten sizes[] [options]                                                                                                              
+./genten order sizes[] [options]                                                                                                              
 	-d density : nonzero ratio                                                                                                      
 	-f density_fiber : nonzero fiber ratio for mode-(M) fibers                                                                      
 	-s density_slice : nonzero slice ratio for mode-(M-1,M) slices
