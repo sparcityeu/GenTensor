@@ -41,7 +41,8 @@ The output of the program is in the form (which can be printed by typing "-h 1" 
 name seed order dim_0 dim_1 dim_2 slc_type nz_slc_cnt requested result density_slc requested result ratio distr_type no max_fib_per_slc requested result ratio imbal_fib_per_slc requested result ratio std_fib_per_slc requested result ratio cv_fib_per_slc requested result ratio avg_fib_per_slc requested result ratio nz_fib_cnt requested result density_fib requested result ratio_prev ratio_last distr_type no max_nz_per_fib requested result ratio imbal_nz_per_fib requested result ratio std_nz_per_fib requested result ratio cv_nz_per_fib requested result ratio avg_nz_per_fib requested result ratio nnz requested result density requested result ratio_prev ratio_last threads TIME time_slc time_fib time_nz time_nz_ind time_write time_total
 ```
 
-**generate_real_tensor_siblings.sh** contains a list of commands to generate tensors using genTen with the same features as real tensors (in FROSTT and HaTeN2).
-**generate_example.sh** is an extendended version of this, which allows generating sibling tensors with different seeds.
+**generate_real_tensor_siblings.sh** contains a list of commands to generate tensors that are similar to real tensors (in FROSTT and HaTeN2 datasets).
 
-The **genten_naive_rand** program generates simple naive random tensors with uniform diftribution, this is just for comparison.
+**generate_example.sh** is an extended version of these commands, which allows to generate tensors with different seeds.
+
+The **genten_naive_rand** program generates simple naive random tensors with uniform distribution, this is just for comparison.
