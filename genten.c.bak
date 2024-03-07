@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	
 	int random_seed = 1;
 	int outfile_entered=0;
-	int print_header = 0;
+	int print_header = 1;
 	int print_debug = 0;
 	int write_tensor = 1;
 	
@@ -142,9 +142,35 @@ int main(int argc, char *argv[])
 		}
 		
 		printf("slc_type \t ");
+		printf("nz_slc_cnt \t requested \t result \t");
+		printf("density_slc \t requested \t result \t ratio \t ");
 		
-		printf("REQST \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t SLC_TYPE \t slc_type \t ");
-		printf("RESLT \t density_slc \t density_fib \t density \t cv_fib_per_slc \t cv_nz_per_fib \t std_fib_per_slc \t std_nz_per_fib \t avg_fib_per_slc \t avg_nz_per_fib \t ");
+		printf("distr_type \t no \t ");
+	
+		if (APPLY_IMBALANCE){
+			printf("max_fib_per_slc \t requested \t result \t ratio \t " );
+			printf("imbal_fib_per_slc \t requested \t result \t ratio \t " );
+		}	
+		
+		printf("std_fib_per_slc \t requested \t result \t ratio \t " );
+		printf("cv_fib_per_slc \t requested \t result \t ratio \t " );
+		printf("avg_fib_per_slc \t requested \t result \t ratio \t " );
+		printf("nz_fib_cnt \t requested \t result \t " );
+		printf("density_fib \t requested \t result \t ratio_prev \t ratio_last \t ");	
+		
+		printf("distr_type \t no \t ");
+	
+		if (APPLY_IMBALANCE){
+			printf("max_nz_per_fib \t requested \t result \t ratio \t " );
+			printf("imbal_nz_per_fib \t requested \t result \t ratio \t " );
+		}	
+		
+		printf("std_nz_per_fib \t requested \t result \t ratio \t " );
+		printf("cv_nz_per_fib \t requested \t result \t ratio \t " );
+		printf("avg_nz_per_fib \t requested \t result \t ratio \t " );
+		printf("nnz \t requested \t result \t " );
+		printf("density \t requested \t result \t ratio_prev \t ratio_last \t ");	
+
 		printf("threads \t TIME \t time_slc \t time_fib \t time_nz \t time_nz_ind \t time_write \t time_total \n");
 	}
 	
@@ -476,7 +502,6 @@ int main(int argc, char *argv[])
 	density_slice = (double) nz_slc_cnt / slc_cnt_total;
 	
 	printf("%d \t ", slc_category);
-	
 	printf("nz_slc_cnt \t %llu \t %llu \t ", nz_slc_cnt_requested, nz_slc_cnt );
 	printf("density_slc \t %g \t %g \t %g \t ", density_slice_requested, density_slice, density_slice/density_slice_requested);
 		
@@ -947,31 +972,6 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-// random number with log-normal distribution
-// int rand_log_norm(double mean, double stdev, int seed_bm){
-	// int val;
-
-	// val = (int) round ( exp (norm_box_muller(mean, stdev, seed_bm)));
-	
-	// if (val<1){
-		// val=1;
-	// }
-	// return val;
-// }
-
-// random number with normal distribution
-// int rand_normal(double mean, double stdev, int seed_bm){
-	// int val;
-	
-	// val = (int) round ( norm_box_muller(mean, stdev, seed_bm));
-	
-	// if (val<1){
-		// val=1;
-	// }
-	// return val;
-// }
-
-
 
 //===========================================================================
 //=  Function to generate normally distributed random variable using the    =
@@ -1091,18 +1091,18 @@ void printusage()
 {
 	printf("usage: ./genten order sizes[] [options] \n");
 	
-	printf("\t-d density : nonzero ratio\n");
-	printf("\t-f density_fiber : nonzero fiber ratio for mode-(M) fibers \n");
-	printf("\t-s density_slice : nonzero slice ratio for mode-(M-1,M) slices \n");
-	printf("\t-c cv_fib_per_slc : coefficient of variation of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices\n");
-	printf("\t-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers\n");
-	printf("\t-i imbal_fib_per_slc : imbalance of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices. ( imbalance = max/avg-1 )\n");
-	printf("\t-b imbal_nz_per_fib : imbalance of nonzero per fiber values for mode-(M) fibers. ( imbalance = max/avg-1 )\n");
-	printf("\t-r random_seed : seed for randomness \n");
-	printf("\t-o outfile : to print out the generated tensor \n");
-	printf("\t-h print_header : to print the header names for the output values \n");
-	printf("\t-p print_debug : to print at some main steps for debugging \n");
-	printf("\t-w write_tensor : to write the generated tensor into a file in COO format \n");
+	printf("\t-d density : nonzero ratio [default: 0.001]\n");
+	printf("\t-f density_fiber : nonzero fiber ratio for mode-(M) fibers [default: 0.01]\n");
+	printf("\t-s density_slice : nonzero slice ratio for mode-(M-1,M) slices [default: 1.0]\n");
+	printf("\t-c cv_fib_per_slc : coefficient of variation of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices [default: 0.5]\n");
+	printf("\t-v cv_nz_per_fib : coefficient of variation of nonzero per fiber values for mode-(M) fibers [default: 0.5]\n");
+	printf("\t-i imbal_fib_per_slc : imbalance of fiber per slice values for mode-(M) fibers and mode-(M-1,M) slices. ( imbalance = max/avg-1 ) [default: max = size]\n");
+	printf("\t-b imbal_nz_per_fib : imbalance of nonzero per fiber values for mode-(M) fibers. ( imbalance = max/avg-1 ) [default: max = size]\n");
+	printf("\t-r random_seed : seed for randomness [default: 1] \n");
+	printf("\t-h print_header : whether print the header names for explaining the output values (1:yes, 0:no[default]) \n");
+	printf("\t-p print_debug : whether print details at some steps for debugging (1:yes, 0:no[default]) \n");
+	printf("\t-w write_tensor : whether write the generated tensor into a file or not (1:yes[default], 0:no) \n");
+	printf("\t-o outfile : the name of the output file to print out the generated tensor \n");
 
 	exit(1);
 }
