@@ -76,6 +76,8 @@ int main(int argc, char *argv[])
 		dim[i]= atoi(argv[i+2]);
 	}
 	
+	int id_first = dim[order-2];
+	int id_second = dim[order-1];
 	
 	while ((input = getopt(argc, argv, "d:s:f:c:v:i:b:r:o:h:p:w:")) != -1)
     {
@@ -179,9 +181,6 @@ int main(int argc, char *argv[])
 	for (int i = 0; i< order; i++){
 		printf("%d \t ", dim[i]);
 	}
-			
-	int id_first = dim[order-2];
-	int id_second = dim[order-1];
 	
 	slc_cnt_total = 1;
 	
