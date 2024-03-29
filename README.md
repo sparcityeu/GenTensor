@@ -30,10 +30,10 @@ USAGE:
 Example run commands will be like the following:
 
 ```
-./genten 3 100 100 100 -d 0.01 -f 0.1 -c 0.5 -v 0.5 -o generated_100_3D.tns
-./genten 4 100 100 100 100 -d 0.0001 -f 0.1 -c 0.5 -v 0.5 -o generated_100_4D.tns
-./genten 5 10 20 30 40 50 -d 0.0001 -f 0.001 -s 0.01 -c 0.5 -v 0.5 -o generated_5d.tns
-./genten 3 10000 15000 20000 -d 2E-09 -f 0.0002 -v 23.1 -s 0.8 -c 13.0 -o sample_generated.tns;
+./genten 3 100 100 100 -d 0.01 -f 0.1 -c 0.5 -v 0.5 -o ../sample_data/generated_100_3D.tns
+./genten 4 100 100 100 100 -d 0.0001 -f 0.1 -c 0.5 -v 0.5 -o ../sample_data/generated_100_4D.tns
+./genten 5 10 20 30 40 50 -d 0.0001 -f 0.001 -s 0.01 -c 0.5 -v 0.5 -o ../sample_data/generated_5d.tns
+./genten 3 10000 15000 20000 -d 2E-09 -f 0.0002 -v 23.1 -s 0.8 -c 13.0 -o ../sample_data/sample_generated.tns;
 ```
 
 The output of the program is in the form (which can be printed by typing "-h 1" option) :
