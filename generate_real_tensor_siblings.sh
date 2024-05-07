@@ -1,4 +1,5 @@
 #!/bin/bash
+#This file contains a list of commands to generate tensors that are similar to real tensors in FROSTT and HaTeN2 datasets.
 
 ./genten 3 165427 11374 2 -d 6.91494E-03 -f 1.38299E-02 -b 0 -v 0 -s 1 -i 4.40365 -c 0.491576 -o GENERATED_vast-2015-mc1-3d.tns;
 ./genten 3 22476 22476 23776223 -d 2.36749E-09 -f 1.51284E-04 -b 4865.32 -v 23.081 -s 0.796316 -i 662.938 -c 13.0705 -o GENERATED_1998darpa.tns;
