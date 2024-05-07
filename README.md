@@ -1,4 +1,4 @@
-# Tensor-Generator
+# GenTen: A Sparse Tensor Generator
 The **genTen** program generates sparse tensors with several given features.
 It adopts a combination of normal distribution and log-normal distribution.
 
